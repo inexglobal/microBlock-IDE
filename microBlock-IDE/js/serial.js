@@ -26,7 +26,7 @@ let serialConnectWeb = async () => {
     try {
         serialPort = await navigator.serial.requestPort();
     } catch(e) {
-        NotifyE("You haven't selected port");
+        NotifyE("You not select port");
         console.log(e);
         return false;
     }
@@ -655,9 +655,7 @@ class UploadViaMSC {
         console.log("All drive:", drives);
         
         const board = boards.find(board => board.id === boardId);
-        // console.log(board);
         const RP2DriveInfo = drives.find(a => a.blocks === board.mscSize);
-        console.log(RP2DriveInfo);
         if (!RP2DriveInfo) {
             throw `MSC drive not found !`;
         }

@@ -9,54 +9,35 @@ global.sharedObj = {
     mainWin: null,
     dashboardWin: null,
     extensionDir: path.normalize(`${__dirname}/extension`),
-    rootPath: path.normalize(`${__dirname}/microBlock-IDE`),
+	rootPath: path.normalize(`${__dirname}/microBlock-IDE`),
 };
 
 protocol.registerSchemesAsPrivileged([
-    {
-        scheme: 'microblock',
-        privileges: {
-            standard: true,
-            supportFetchAPI: true,
-            secure: true
+    { 
+        scheme: 'microblock', 
+        privileges: { 
+            standard: true, 
+            supportFetchAPI: true, 
+            secure: true 
         }
     }
 ]);
 
 function createWindow() {
-    const partition = 'persist:microblock_dev'; // change from persist:microblock
+    const partition = 'persist:microblock';
     const ses = session.fromPartition(partition);
 
-    // ses.protocol.registerFileProtocol('microblock', (request, callback) => {
-    //     const url = request.url.substr(13);
-    //     callback({ path: path.normalize(`${__dirname}/microBlock-IDE/${url}`) })
-    // });
     ses.protocol.registerFileProtocol('microblock', (request, callback) => {
-        try {
-            const u = new URL(request.url);
-
-            // English comments as requested:
-            // Some URLs may come as microblock:///path (no hostname)
-            // Others may come as microblock://hostname/path
-            // We map both to a single local path under microBlock-IDE/
-            const virtualPath = decodeURIComponent((u.hostname ? `/${u.hostname}` : '') + u.pathname);
-
-            // Remove leading slashes to make path.join behave on Windows
-            const rel = virtualPath.replace(/^\/+/, '');
-
-            callback({ path: path.join(__dirname, 'microBlock-IDE', rel) });
-        } catch (e) {
-            // -6 = net::ERR_FILE_NOT_FOUND
-            callback({ error: -6 });
-        }
+        const url = request.url.substr(13);
+        callback({ path: path.normalize(`${__dirname}/microBlock-IDE/${url}`) })
     });
 
-
+    
     global.sharedObj.mainWin = new BrowserWindow({
         width: 800,
         height: 600,
         webPreferences: {
-            webSecurity: false,
+			webSecurity: false,
             nodeIntegration: true,
             partition
         },
@@ -105,11 +86,7 @@ ipcMain.on("show-dashboard", (event) => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(async () => {
-    const ses = session.fromPartition('persist:microblock');
-    await ses.clearStorageData(); // dev-only: clears localStorage/indexeddb/cache, etc.
-    createWindow();
-});
+app.whenReady().then(createWindow)
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits

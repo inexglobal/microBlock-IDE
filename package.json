@@ -1,16 +1,37 @@
 {
   "name": "mblock",
-  "version": "3.1.0-beta.2",
+  "version": "3.0.0",
   "description": "microBlock IDE (offline version)",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "rebuild:wifi": "electron-rebuild -f -w wifi-control",
+    "install": "electron-rebuild -f -w \"wifi-control\"",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder",
-    "dist:win": "electron-builder --win nsis --x64",
-    "dist:mac": "electron-builder --mac dmg zip",
-    "dist:linux": "electron-builder --linux AppImage"
+    "dist": "electron-builder"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/microBlock-IDE/microBlock-IDE-offline.git"
+  },
+  "author": "microBlock",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/microBlock-IDE/microBlock-IDE-offline/issues"
+  },
+  "homepage": "https://github.com/microBlock-IDE/microBlock-IDE-offline#readme",
+  "devDependencies": {
+    "check-dependencies": "1.1.0",
+    "electron": "9.2.0",
+    "electron-build": "0.0.3",
+    "electron-builder": "22.9.1",
+    "electron-rebuild": "2.3.5"
+  },
+  "dependencies": {
+    "bcrypt": "5.0.0",
+    "dive": "0.5.0",
+    "node-disk-info": "1.1.0",
+    "node-wifi": "2.0.14",
+    "serialport": "9.0.1"
   },
   "build": {
     "appId": "com.microblock.app",
@@ -19,26 +40,17 @@
     "files": [
       "!Arduino/*"
     ],
-    "buildDependenciesFromSource": true,
-    "npmRebuild": false,
     "win": {
-      "target": [
-        "nsis"
-      ],
+      "target": "msi",
       "icon": "build/favicon.ico"
     },
     "mac": {
       "category": "public.app-category.developer-tools",
-      "target": [
-        "dmg",
-        "zip"
-      ],
+      "target": "default",
       "icon": "build/favicon.icns"
     },
     "linux": {
-      "target": [
-        "AppImage"
-      ],
+      "target": "AppImage",
       "icon": "build/favicon.png",
       "category": "Development"
     },

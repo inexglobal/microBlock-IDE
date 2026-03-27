@@ -2,98 +2,141 @@ let editor = null, editorReadonly = true;
 let useMode = "block";
 let onKeyUpTimer = null;
 
-$("#mode-select-switch > li").click(async function () {
+function ensureMainEditor(isArduinoPlatform) {
+    const container = $("#code-editor > article")[0];
+    if (!container) return null;
+
+    if (!editor) {
+        editor = monaco.editor.create(container, {
+            value: "",
+            language: !isArduinoPlatform ? "python" : "cpp",
+            readOnly: file_name_select.endsWith(".py") ? false : true,
+            automaticLayout: false,
+            minimap: { enabled: false },
+            scrollBeyondLastLine: false,
+            wordWrap: "off"
+        });
+
+        editor.onKeyUp(async (evant) => {
+            let allowKey = [
+                8,  // CapsLock
+                9,  // ESC
+                6,  // AltLeft
+                60, // F2
+                61, // F3
+                62, // F4
+                63, // F5
+                64, // F6
+                65, // F7
+                66, // F8
+                67, // F9
+                68, // F10
+                69, // F11
+                70, // F12
+                15, // ArrowLeft
+                16, // ArrowUp
+                17, // ArrowRight
+                18  // ArrowDown
+            ];
+
+            if (
+                !evant.ctrlKey &&
+                !evant.metaKey &&
+                !evant.shiftKey &&
+                allowKey.indexOf(evant.keyCode) === -1 &&
+                !file_name_select.endsWith(".py")
+            ) {
+                evant.preventDefault();
+
+                if (isEmbed) {
+                    return;
+                }
+
+                file_select_without_ext = file_name_select.replace(/\.(py|xml)/, "");
+                fs.remove("/" + file_select_without_ext + ".xml");
+
+                if (await NotifyConfirm("If edit code, program in block will lost. Are you want to edit ?")) {
+                    editor.updateOptions({ readOnly: false });
+                    file_name_select = file_select_without_ext + ".py";
+                }
+            }
+
+            if (file_name_select.endsWith(".py")) {
+                if (onKeyUpTimer) clearTimeout(onKeyUpTimer);
+                onKeyUpTimer = setTimeout(() => {
+                    saveCodeToLocal();
+                }, 1000);
+            }
+        });
+    } else {
+        const model = editor.getModel();
+        if (model) {
+            monaco.editor.setModelLanguage(model, !isArduinoPlatform ? "python" : "cpp");
+        }
+        editor.updateOptions({
+            readOnly: file_name_select.endsWith(".py") ? false : true
+        });
+    }
+
+    return editor;
+}
+
+$("#mode-select-switch > li").off("click").on("click", async function () {
     let value = $(this).attr("data-value");
+
     if (value == 1) { // Block mode
-        if (file_name_select.endsWith(".py")) {
+        if (file_name_select.endsWith(".py") && editor) {
             if (editor.getValue().length > 0) {
                 if (!await NotifyConfirm("Code will convert to block (BETA). Are you confirm switch to block mode ?")) {
                     return;
                 }
             }
+
             updataWorkspaceAndCategoryFromvFS();
+
             if (editor.getValue().length > 0) {
                 codeFromMonacoToBlock();
             }
+
             fs.remove("/" + file_name_select);
             file_name_select = file_name_select.replace(/\.(py|xml)/, "") + ".xml";
+
             editor.updateOptions({ readOnly: true });
         }
+
         $("#blocks-editor").css("display", "flex");
         $("#code-editor").hide();
-        Blockly.triggleResize();
+
+        requestAnimationFrame(() => {
+            Blockly.triggleResize();
+        });
+
         useMode = "block";
+
     } else if (value == 2) { // Code mode
         $("#blocks-editor").hide();
         $("#code-editor").css("display", "flex");
 
         const { isArduinoPlatform } = boards.find(board => board.id === boardId);
         let code = "";
+
         if (!isArduinoPlatform) { // MicroPython
             code = Blockly.Python.workspaceToCode(blocklyWorkspace);
         } else { // C++
             code = Blockly.JavaScript.workspaceToCode(blocklyWorkspace);
         }
-        if (!editor) {
-            editor = monaco.editor.create($("#code-editor > article")[0], {
-                language: !isArduinoPlatform ? 'python' : 'cpp',
-                readOnly: file_name_select.endsWith(".py") ? false : true,
-                automaticLayout: true
-            });
 
-            editor.onKeyUp(async (evant) => {
-                // console.log(evant);
-
-                let allowKey = [
-                    8, // CapsLock
-                    9, // ESC
-                    6, // AltLeft
-                    60, // F2
-                    61, // F3
-                    62, // F4
-                    63, // F5
-                    64, // F6
-                    65, // F7
-                    66, // F8
-                    67, // F9
-                    68, // F10
-                    69, // F11
-                    70, // F12
-                    15, // ArrowLeft
-                    16, // ArrowUp
-                    17, // ArrowRight
-                    18, // ArrowDown
-                ]
-                if (!evant.ctrlKey && !evant.metaKey && !evant.shiftKey && allowKey.indexOf(evant.keyCode) === -1 && !file_name_select.endsWith(".py")) {
-                    evant.preventDefault();
-                    if (isEmbed) { 
-                        return;
-                    }
-                    file_select_without_ext = file_name_select.replace(/\.(py|xml)/, "");
-                    fs.remove("/" + file_select_without_ext + ".xml");
-                    if (await NotifyConfirm("If edit code, program in block will lost. Are you want to edit ?")) {
-                        editor.updateOptions({ readOnly: false });
-                        file_name_select = file_select_without_ext + ".py";
-                    }
-                }
-
-                if (file_name_select.endsWith(".py")) {
-                    if (onKeyUpTimer) clearTimeout(onKeyUpTimer);
-                    onKeyUpTimer = setTimeout(() => {
-                        saveCodeToLocal();
-                    }, 1000);
-                }
+        const mainEditor = ensureMainEditor(isArduinoPlatform);
+        if (mainEditor) {
+            requestAnimationFrame(() => {
+                mainEditor.setValue(code);
+                mainEditor.layout();
             });
         }
 
-        editor.setValue(code);
-
-        editor.layout();
-
         useMode = "code";
-    } else { // ????
-
     }
+
     $("#mode-select-switch > li").removeClass("active");
     $(this).addClass("active");
 });
@@ -105,7 +148,7 @@ let __Array = [];
 
 // Helper function to return the monaco completion item type of a thing
 function getType(thing, isMember) {
-    isMember = (isMember == undefined) ? (typeof isMember == "boolean") ? isMember : false : false; // Give isMember a default value of false
+    isMember = (isMember == undefined) ? (typeof isMember == "boolean") ? isMember : false : false;
 
     switch ((typeof thing).toLowerCase()) {
         case "object":
@@ -119,66 +162,58 @@ function getType(thing, isMember) {
     }
 }
 
-let autoCompletionDictionary = { };
+let autoCompletionDictionary = {};
 
-// Register object that will return autocomplete items 
+// Register object that will return autocomplete items
 monaco.languages.registerCompletionItemProvider('python', {
-    // Run this function when the period or open parenthesis is typed (and anything after a space)
     triggerCharacters: ['.', '('],
 
-    // Function to generate autocompletion results
     provideCompletionItems: function (model, position, token) {
-        // Split everything the user has typed on the current line up at each space, and only look at the last word
-        var last_chars = model.getValueInRange({ startLineNumber: position.lineNumber, startColumn: 0, endLineNumber: position.lineNumber, endColumn: position.column });
+        var last_chars = model.getValueInRange({
+            startLineNumber: position.lineNumber,
+            startColumn: 0,
+            endLineNumber: position.lineNumber,
+            endColumn: position.column
+        });
+
         if (last_chars.lastIndexOf("(") >= 0) {
             last_chars = last_chars.substring(last_chars.lastIndexOf("(") + 1, last_chars.length);
         }
+
         var words = last_chars.replace("\t", "").split(" ");
-        var active_typing = words[words.length - 1]; // What the user is currently typing (everything after the last space)
-
-        // If the last character typed is a period then we need to look at member objects of the obj object 
+        var active_typing = words[words.length - 1];
         var is_member = active_typing.charAt(active_typing.length - 1) == ".";
-
-        // Array of autocompletion results
         var result = [];
-
-        // Used for generic handling between member and non-member objects
         var last_token = autoCompletionDictionary;
         var prefix = '';
 
         if (is_member) {
-            // Is a member, get a list of all members, and the prefix
             var parents = active_typing.substring(0, active_typing.length - 1).split(".");
             last_token = autoCompletionDictionary[parents[0]];
             prefix = parents[0];
 
-            // Loop through all the parents the current one will have (to generate prefix)
             for (var i = 1; i < parents.length; i++) {
-                if (last_token.hasOwnProperty(parents[i])) {
+                if (last_token && last_token.hasOwnProperty(parents[i])) {
                     prefix += '.' + parents[i];
                     last_token = last_token[parents[i]];
                 } else {
-                    // Not valid
-                    return result;
+                    return { suggestions: result };
                 }
             }
 
             prefix += '.';
         }
 
-        // Get all the child properties of the last token
         for (var prop in last_token) {
-            // Do not show properites that begin with "__"
             if (last_token.hasOwnProperty(prop) && !prop.startsWith("__")) {
-                // Get the detail type (try-catch) incase object does not have prototype 
                 var details = '';
+
                 try {
                     details = last_token[prop].__proto__.constructor.name;
                 } catch (e) {
                     details = typeof last_token[prop];
                 }
 
-                // Create completion object
                 var to_push = {
                     label: prefix + prop,
                     kind: getType(last_token[prop], is_member),
@@ -186,15 +221,12 @@ monaco.languages.registerCompletionItemProvider('python', {
                     insertText: prop
                 };
 
-                // Change insertText and documentation for functions
                 if (to_push.detail.toLowerCase() == 'function') {
                     to_push.insertText += "(";
-                    // to_push.documentation = (last_token[prop].toString()).split("{")[0]; // Show function prototype in the documentation popup
                 } else if (Array.isArray(last_token[prop])) {
                     to_push.insertText += "[";
                 }
 
-                // Add to final results
                 result.push(to_push);
             }
         }

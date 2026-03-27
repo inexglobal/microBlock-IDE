@@ -105,7 +105,7 @@ addBoard({
         {
             // name: "MicroPython (No Gamepad) for EasyKids Robot Kit V1.9.1-5-g79adb87da-dirty",
             name: "EasyKids_Standard",
-            path: "firmware/MicroPython.for.EasyKids.Robot.Kit.v1.2.0-dirty-4-no-bluepad.bin",
+            path: "firmware/MicroPython.for.EasyKids.Robot.Kit.v1.2.0-dirty-3-no-bluepad.bin",
             version: "v1.2.0-dirty",
             date: "2023-07-22",
             board: "EasyKids Robot Kit",
@@ -150,12 +150,9 @@ addBoard({
             blocks: [
                 {
                     name: "Moving",
-                    icon: `images/Moving.png`,
+                    icon: `images/tire.png`,
                     color: "#28B463",
                     blocks: [
-                        {
-                            xml: '<label text="Motor"></label>',
-                        },
                         {
                             xml: `
                                 <block type="motor_forward">
@@ -637,7 +634,7 @@ addBoard({
                 },
                 {
                     name: "I/O",
-                    icon: "images/IO.png",
+                    icon: "/images/icon/led.png",
                     color: "#e64c3c",
                     blocks: [
                         {
@@ -837,7 +834,7 @@ addBoard({
                         },
                         "controls_wait_until",
                         "controls_whileUntil",
-                        "controls_flow_statements",
+                        // "controls_flow_statements",
                     ]
                 },
                 {
@@ -1055,7 +1052,7 @@ addBoard({
                 },
                 {
                     name: "Advanced",
-                    icon: `images/Advanced.png`,
+                    icon: `/images/icon/expert.png`,
                     color: "#8E44AD",
                     blocks: [
                         {

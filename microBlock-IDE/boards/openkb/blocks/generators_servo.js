@@ -1,4 +1,4 @@
-Blockly.Python.forBlock['external_servo'] = function (block) {
+Blockly.Python['external_servo'] = function (block) {
     Blockly.Python.definitions_['import_servo'] = 'import servo';
 
     var dropdown_ch = block.getFieldValue('ch');

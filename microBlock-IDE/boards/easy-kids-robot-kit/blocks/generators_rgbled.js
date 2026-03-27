@@ -1,4 +1,4 @@
-Blockly.Python.forBlock['rgbled_set_color'] = function(block) {
+Blockly.Python['rgbled_set_color'] = function(block) {
   var dropdown_pin = block.getFieldValue('pin');
 
   Blockly.Python.definitions_[`rom_board_import_rgbled_${dropdown_pin}`] = `from board import rgbled_${dropdown_pin}`;
@@ -10,7 +10,7 @@ Blockly.Python.forBlock['rgbled_set_color'] = function(block) {
   return code;
 };
 
-Blockly.Python.forBlock['rgbled_fill_color'] = function(block) {
+Blockly.Python['rgbled_fill_color'] = function(block) {
   var dropdown_pin = block.getFieldValue('pin');
 
   Blockly.Python.definitions_[`rom_board_import_rgbled_${dropdown_pin}`] = `from board import rgbled_${dropdown_pin}`;
@@ -21,7 +21,7 @@ Blockly.Python.forBlock['rgbled_fill_color'] = function(block) {
   return code;
 };
 
-Blockly.Python.forBlock['rgbled_show'] = function(block) {
+Blockly.Python['rgbled_show'] = function(block) {
   var dropdown_pin = block.getFieldValue('pin');
 
   Blockly.Python.definitions_[`rom_board_import_rgbled_${dropdown_pin}`] = `from board import rgbled_${dropdown_pin}`;
@@ -30,16 +30,16 @@ Blockly.Python.forBlock['rgbled_show'] = function(block) {
   return code;
 };
 
-Blockly.Python.forBlock['rgbled_clear'] = function(block) {
+Blockly.Python['rgbled_clear'] = function(block) {
   var dropdown_pin = block.getFieldValue('pin');
 
   Blockly.Python.definitions_[`rom_board_import_rgbled_${dropdown_pin}`] = `from board import rgbled_${dropdown_pin}`;
 
-  var code = `rgbled_${dropdown_pin}.clear(); rgbled_${dropdown_pin}.show()\n`;
+  var code = `rgbled_${dropdown_pin}.clear()\n`;
   return code;
 };
 
-Blockly.Python.forBlock['rgbled_rainbow'] = function(block) {
+Blockly.Python['rgbled_rainbow'] = function(block) {
   var dropdown_pin = block.getFieldValue('pin');
 
   Blockly.Python.definitions_[`rom_board_import_rgbled_${dropdown_pin}`] = `from board import rgbled_${dropdown_pin}`;
@@ -50,7 +50,7 @@ Blockly.Python.forBlock['rgbled_rainbow'] = function(block) {
   return code;
 };
 
-Blockly.Python.forBlock['rgbled_set_brightness'] = function(block) {
+Blockly.Python['rgbled_set_brightness'] = function(block) {
   var dropdown_pin = block.getFieldValue('pin');
 
   Blockly.Python.definitions_[`rom_board_import_rgbled_${dropdown_pin}`] = `from board import rgbled_${dropdown_pin}`;
