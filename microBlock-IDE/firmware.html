@@ -9,23 +9,26 @@
         <link rel="icon" href="favicon.ico" sizes="64x64">
         <link rel="manifest" href="manifest.json">
 
-        <!-- jQuery -->
         <script src="js/jquery-3.5.1.min.js"></script>
-
-        <!-- esptool.js -->
         <script src="firmware-update/utilities.js"></script>
         <script src="firmware-update/esptool.js"></script>
 
-        <!-- Font Awesome -->
         <link rel="stylesheet" href="fontawesome/css/all.min.css">
-        
         <link rel="stylesheet" href="css/style.css">
 
         <script>
+            const setProgress = (percent, text = "") => {
+                const p = Math.max(0, Math.min(100, Number(percent) || 0));
+                $("#firmware-upgrade-dialog .progress-box > .back-drop").width(`${p}%`);
+                $("#firmware-upgrade-dialog .progress-box > .caption").text(
+                    text || `${p.toFixed(2)}%`
+                );
+            };
+
             const logMsg = text => {
                 console.log(text);
                 $("#firmware-upgrade-dialog .progress-box > .caption").text(text);
-            }
+            };
 
             const debugMsg = (...args) => {
                 function getStackTrace() {
@@ -50,14 +53,15 @@
                 let stack = getStackTrace();
                 stack.shift();
                 let top = stack.shift();
-                let prefix = '[' + top.func + ":" + top.pos + '] ';
+                let prefix = "[" + top.func + ":" + top.pos + "] ";
+
                 for (let arg of args) {
                     if (typeof arg == "string") {
                         logMsg(prefix + arg);
                     } else if (typeof arg == "number") {
                         logMsg(prefix + arg);
                     } else if (typeof arg == "boolean") {
-                        logMsg(prefix + arg ? "true" : "false");
+                        logMsg(prefix + (arg ? "true" : "false"));
                     } else if (Array.isArray(arg)) {
                         logMsg(prefix + "[" + arg.map(value => espTool.toHex(value)).join(", ") + "]");
                     } else if (typeof arg == "object" && (arg instanceof Uint8Array)) {
@@ -66,16 +70,16 @@
                         logMsg(prefix + "Unhandled type of argument:" + typeof arg);
                         console.log(arg);
                     }
-                    prefix = "";  // Only show for first argument
+                    prefix = "";
                 }
-            }
+            };
 
-            const formatMacAddr = macAddr => macAddr.map(value => value.toString(16).toUpperCase().padStart(2, "0")).join(":");
+            const formatMacAddr = macAddr =>
+                macAddr.map(value => value.toString(16).toUpperCase().padStart(2, "0")).join(":");
 
             const updateProgress = (part, percentage) => {
                 console.log(`Upload [${part}]: ${percentage}%`);
-                $("#firmware-upgrade-dialog  .progress-box > .back-drop").width(`${percentage}%`);
-                // setUploadProgress(percentage);
+                setProgress(percentage, `Upload [${part}]: ${percentage}%`);
             };
 
             const espTool = new EspLoader({
@@ -90,9 +94,8 @@
                     await espTool.disconnect();
                 }
 
-                // setTextProcess("เชื่อมต่อ...");
-                // setUploadProgress(-2);
-                await espTool.connect()
+                await espTool.connect();
+
                 readLoop().catch((error) => {
                     console.log("toggleUIConnected -> false");
                     console.log(error);
@@ -100,36 +103,27 @@
 
                 let espToolStub = null;
                 try {
-                    // setTextProcess("เข้าโหมดอัพโหลด...");
-                    // setUploadProgress(-2);
                     if (await espTool.sync()) {
                         logMsg("Connected to " + await espTool.chipName());
                         logMsg("MAC Address: " + formatMacAddr(espTool.macAddr()));
                         espToolStub = await espTool.runStub();
                     } else {
-                        console.error("Sync error");
-                        // setUploadProgress(-1);
                         throw "Sync error";
                     }
                 } catch (e) {
                     console.error(e);
-                    // setUploadProgress(-1);
                     throw e;
                 }
 
-                console.log("eraseFlash");
                 logMsg("Erase Flash...");
                 await espToolStub.eraseFlash();
 
                 for (const { offset, file } of firmwareFile) {
-                    // setTextProcess("อัพโหลด " + file);
                     const data = await (await fetch(file)).arrayBuffer();
                     await espToolStub.flashData(data, offset, file);
                 }
 
                 await espTool.disconnect();
-                // setTextProcess("อัพเดทเสร็จสิ้น");
-                // setUploadFinish(true);
             };
 
             $(document).ready(() => {
@@ -138,7 +132,9 @@
                 const boardId = params.board;
                 const firmwareList = JSON.parse(params.firmware);
 
-                $("#firmware-version-select").html(firmwareList.map((a, index) => `<option value="${index}">${a.name}</option>`));
+                $("#firmware-version-select").html(
+                    firmwareList.map((a, index) => `<option value="${index}">${a.name}</option>`)
+                );
 
                 $("#firmware-upgrade-dialog article").hide();
                 $("#firmware-upgrade-dialog article.todo").show();
@@ -148,9 +144,8 @@
 
                 $("#install-firmware-button").click(async () => {
                     $("#firmware-upgrade-dialog article.todo").hide();
-                    $("#firmware-upgrade-dialog  .progress-box > .back-drop").width(0);
+                    setProgress(0, "");
                     $("#firmware-upgrade-dialog article.doing").show();
-
                     $("#firmware-upgrade-dialog .close-btn").hide();
 
                     let fwIndex = +$("#firmware-version-select").val();
@@ -164,11 +159,12 @@
                                 file: fwPath
                             }
                         ]);
+
                         $("#firmware-upgrade-dialog article.done .icon").hide();
                         $("#firmware-upgrade-dialog article.done .icon.success").show();
                         $("#firmware-upgrade-status").text("Firmware Upgrade Successful");
                         $("#firmware-upgrade-dialog .upload-btn").show();
-                    } catch(err) {
+                    } catch (err) {
                         console.log(err);
                         $("#firmware-upgrade-dialog article.done .icon").hide();
                         $("#firmware-upgrade-dialog article.done .icon.fail").show();
@@ -178,7 +174,6 @@
 
                     $("#firmware-upgrade-dialog article.doing").hide();
                     $("#firmware-upgrade-dialog article.done").show();
-
                     $("#firmware-upgrade-dialog .close-btn").show();
                 });
 
@@ -190,7 +185,7 @@
                 $("#firmware-upgrade-dialog .close-btn").click(() => window.close());
 
                 $("#continue-upload").click(() => {
-                    window.opener.document.querySelector("#upload-program").click()
+                    window.opener.document.querySelector("#upload-program").click();
                     setTimeout(() => window.close(), 300);
                 });
             });
@@ -215,6 +210,7 @@
                         </div>
                         <div class="note-for-rp2">Hold BOOT button then click RESET button before next</div>
                     </article>
+
                     <article class="doing">
                         <div class="icon loading"><i class="fas fa-truck-loading"></i></div>
                         <p>Installing Firmware...</p>
@@ -222,8 +218,12 @@
                             <div class="back-drop"></div>
                             <div class="caption"></div>
                         </div>
-                        <p class="warning"><i class="fas fa-exclamation-triangle"></i> Don't close program or unplug device</p>
+                        <p class="warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Don't close program or unplug device
+                        </p>
                     </article>
+
                     <article class="done">
                         <div class="icon success"><i class="far fa-laugh-beam"></i></div>
                         <div class="icon fail"><i class="far fa-sad-tear"></i></div>

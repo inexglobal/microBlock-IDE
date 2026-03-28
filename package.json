@@ -1,13 +1,16 @@
 {
   "name": "mblock",
-  "version": "3.0.0",
+  "version": "3.1.0-beta.2",
   "description": "microBlock IDE (offline version)",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "install": "electron-rebuild -f -w \"wifi-control\"",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win nsis --x64",
+    "dist:mac": "electron-builder --mac dmg zip",
+    "dist:linux": "electron-builder --linux AppImage"
   },
   "repository": {
     "type": "git",

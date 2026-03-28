@@ -1648,4 +1648,3 @@ return module$build$src$core$blockly;
 }));
 
 
-//# sourceMappingURL=blockly_compressed.js.map
