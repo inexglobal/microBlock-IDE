@@ -21,8 +21,8 @@ addBoard({
             ["SV1", 18],
             ["SV2", 19],
             ["SV3", 20],
-            ["SV4", 21],,
-            ["LED1", 'LED']
+            ["SV4", 21],
+            ["LED1", "LED"],
             ["LED2", 23]
         ],
         analog: [
@@ -47,7 +47,7 @@ addBoard({
         "blocks/blocks_servo.js",
         "blocks/blocks_pin.js",
         "blocks/blocks_advanced.js",
-        // "blocks/blocks_serial.js",
+        "blocks/blocks_serial.js",
 
         "blocks/generators_motor.js",
         "../ipst-wifi/blocks/generators_display.js",
@@ -55,7 +55,7 @@ addBoard({
         "../kidbright32/blocks/generators_servo.js",
         "blocks/generators_pin.js",
         "blocks/generators_advanced.js",
-        // "blocks/generators_serial.js",
+        "blocks/generators_serial.js",
     ],
     modules: [],
     firmware: [
@@ -668,82 +668,147 @@ addBoard({
                     icon: `/images/icon/jigsaw.png`,
                     color: "#17A589",
                     blocks: "PROCEDURE"
-                }, 
-                
-    //             {
-    //                 name: "Serial",
-    //                 icon: `images/drive.png`,
-    //                 color: "#000000",
-    //                 blocks: [
-    //                     {
-    //                         xml: `
-    //     <block type="serial_begin">
-    //       <field name="BAUD">115200</field>
-    //     </block>
-    //   `
-    //                     },
-    //                     {
-    //                         xml: `
-    //     <block type="serial_init">
-    //       <field name="BAUD">115200</field>
-    //       <field name="BITS">8</field>
-    //       <field name="PARITY">None</field>
-    //       <field name="STOP">1</field>
-    //       <field name="TIMEOUT">0</field>
-    //       <field name="TIMEOUT_CHAR">0</field>
-    //     </block>
-    //   `
-    //                     },
-    //                     {
-    //                         xml: `
-    //     <block type="serial_write_text">
-    //       <value name="TEXT">
-    //         <shadow type="text">
-    //           <field name="TEXT">Hello!</field>
-    //         </shadow>
-    //       </value>
-    //     </block>
-    //   `
-    //                     },
-    //                     {
-    //                         xml: `
-    //     <block type="serial_write_bytes">
-    //       <value name="BYTES">
-    //         <shadow type="text">
-    //           <field name="TEXT">b'ABC\\n'</field>
-    //         </shadow>
-    //       </value>
-    //     </block>
-    //   `
-    //                     },
-    //                     "serial_any",
-    //                     {
-    //                         xml: `
-    //     <block type="serial_read_n">
-    //       <field name="N">1</field>
-    //     </block>
-    //   `
-    //                     },
-    //                     "serial_read_all",
-    //                     "serial_readline",
-    //                     "serial_readline_text",
-    //                     {
-    //                         xml: `
-    //     <block type="serial_readinto">
-    //       <value name="BUF">
-    //         <shadow type="text">
-    //           <field name="TEXT">bytearray(64)</field>
-    //         </shadow>
-    //       </value>
-    //     </block>
-    //   `
-    //                     },
-    //                     "serial_flush",
-    //                     "serial_txdone",
-    //                     "serial_sendbreak",
-    //                     "serial_end"
-    //                 ]
-    //             },
+                },
+
+                {
+                    name: "Serial",
+                    icon: `images/drive.png`,
+                    color: "#000000",
+                    blocks: [
+                        {
+                            xml: '<label text="Config"></label>',
+                        },
+                        {
+                            xml: `
+    <block type="serial_begin">
+      <field name="BAUD">115200</field>
+    </block>
+  `
+                        },
+                        {
+                            xml: `
+    <block type="serial_init">
+      <field name="BAUD">115200</field>
+      <field name="BITS">8</field>
+      <field name="PARITY">None</field>
+      <field name="STOP">1</field>
+      <field name="TIMEOUT">0</field>
+      <field name="TIMEOUT_CHAR">0</field>
+    </block>
+  `
+                        },
+
+                        {
+                            xml: '<label text="Write"></label>',
+                        },
+                        {
+                            xml: `
+    <block type="serial_write_text">
+      <value name="TEXT">
+        <shadow type="text">
+          <field name="TEXT">Hello!</field>
+        </shadow>
+      </value>
+    </block>
+  `
+                        },
+                        {
+                            xml: `
+    <block type="serial_write_text_newline">
+      <value name="TEXT">
+        <shadow type="text">
+          <field name="TEXT">Hello!</field>
+        </shadow>
+      </value>
+    </block>
+  `
+                        },
+                        {
+                            xml: `
+    <block type="serial_write_bytes">
+      <value name="BYTES">
+        <shadow type="text">
+          <field name="TEXT">b'ABC\\n'</field>
+        </shadow>
+      </value>
+    </block>
+  `
+                        },
+                        {
+                            xml: `
+    <block type="serial_write_byte">
+      <value name="BYTE">
+        <shadow type="math_number">
+          <field name="NUM">65</field>
+        </shadow>
+      </value>
+    </block>
+  `
+                        },
+
+                        {
+                            xml: '<label text="Read"></label>',
+                        },
+                        "serial_any",
+                        {
+                            xml: `
+    <block type="serial_read_n">
+      <field name="N">1</field>
+    </block>
+  `
+                        },
+                        "serial_read_byte",
+                        "serial_read_text",
+                        "serial_read_all",
+                        "serial_readline",
+                        "serial_readline_text",
+                        {
+                            xml: `
+    <block type="serial_readinto">
+      <value name="BUF">
+        <shadow type="text">
+          <field name="TEXT">bytearray(64)</field>
+        </shadow>
+      </value>
+    </block>
+  `
+                        },
+
+                        {
+                            xml: '<label text="Convert"></label>',
+                        },
+                        {
+                            xml: `
+    <block type="serial_byte_to_ascii_string">
+      <value name="BYTE">
+        <shadow type="math_number">
+          <field name="NUM">65</field>
+        </shadow>
+      </value>
+    </block>
+  `
+                        },
+                        {
+                            xml: `
+    <block type="serial_ascii_to_byte_string">
+      <value name="TEXT">
+        <shadow type="text">
+          <field name="TEXT">A</field>
+        </shadow>
+      </value>
+    </block>
+  `
+                        },
+
+                        {
+                            xml: '<label text="Control"></label>',
+                        },
+                        "serial_flush",
+                        "serial_txdone",
+                        "serial_sendbreak",
+                        "serial_end"
+                    ]
+                },
 
                 {
                     name: "Advanced",

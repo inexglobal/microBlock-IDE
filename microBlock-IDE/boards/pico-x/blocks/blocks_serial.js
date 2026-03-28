@@ -42,6 +42,17 @@ Blockly.defineBlocksWithJsonArray([
   },
 
   {
+    "type": "serial_write_text_newline",
+    "message0": "Serial write text %1 with newline",
+    "args0": [{ "type": "input_value", "name": "TEXT" }],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": "#2b2b2b",
+    "tooltip": "Write text (utf-8) and append newline.",
+    "helpUrl": ""
+  },
+
+  {
     "type": "serial_write_bytes",
     "message0": "Serial write bytes %1",
     "args0": [{ "type": "input_value", "name": "BYTES" }],
@@ -49,6 +60,17 @@ Blockly.defineBlocksWithJsonArray([
     "nextStatement": null,
     "colour": "#2b2b2b",
     "tooltip": "Write bytes/bytearray.",
+    "helpUrl": ""
+  },
+
+  {
+    "type": "serial_write_byte",
+    "message0": "Serial write byte %1",
+    "args0": [{ "type": "input_value", "name": "BYTE" }],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": "#2b2b2b",
+    "tooltip": "Write one byte (0-255).",
     "helpUrl": ""
   },
 
@@ -74,6 +96,24 @@ Blockly.defineBlocksWithJsonArray([
     "helpUrl": ""
   },
 
+  {
+    "type": "serial_read_byte",
+    "message0": "Serial read byte",
+    "args0": [],
+    "output": "Number",
+    "colour": "#2b2b2b",
+    "tooltip": "Read one byte. Returns -1 if no data.",
+    "helpUrl": ""
+  },
+  {
+    "type": "serial_read_text",
+    "message0": "Serial read as text",
+    "args0": [],
+    "output": null,
+    "colour": "#2b2b2b",
+    "tooltip": "Read all available data and decode utf-8. Returns '' if None.",
+    "helpUrl": ""
+  },
   {
     "type": "serial_read_all",
     "message0": "Serial read all",
@@ -111,6 +151,30 @@ Blockly.defineBlocksWithJsonArray([
     "output": "Number",
     "colour": "#2b2b2b",
     "tooltip": "Read into buffer -> int or None.",
+    "helpUrl": ""
+  },
+
+  {
+    "type": "serial_byte_to_ascii_string",
+    "message0": "byte %1 to ascii string",
+    "args0": [
+      { "type": "input_value", "name": "BYTE" }
+    ],
+    "output": null,
+    "colour": "#2b2b2b",
+    "tooltip": "Convert byte value (0-255) to a single character string.",
+    "helpUrl": ""
+  },
+
+  {
+    "type": "serial_ascii_to_byte_string",
+    "message0": "ascii string %1 to byte",
+    "args0": [
+      { "type": "input_value", "name": "TEXT" }
+    ],
+    "output": "Number",
+    "colour": "#2b2b2b",
+    "tooltip": "Convert first character of text to byte value (0-255). Empty string returns 0.",
     "helpUrl": ""
   },
 

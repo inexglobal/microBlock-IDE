@@ -47,10 +47,22 @@ Blockly.Python.forBlock["serial_write_text"] = function (block) {
   return `uart0.write(str(${text}).encode('utf-8'))\n`;
 };
 
+Blockly.Python.forBlock["serial_write_text_newline"] = function (block) {
+  ensureUART0();
+  const text = Blockly.Python.valueToCode(block, "TEXT", Blockly.Python.ORDER_NONE) || "''";
+  return `uart0.write((str(${text}) + '\\n').encode('utf-8'))\n`;
+};
+
 Blockly.Python.forBlock["serial_write_bytes"] = function (block) {
   ensureUART0();
   const b = Blockly.Python.valueToCode(block, "BYTES", Blockly.Python.ORDER_NONE) || "b''";
   return `uart0.write(${b})\n`;
+};
+
+Blockly.Python.forBlock["serial_write_byte"] = function (block) {
+  ensureUART0();
+  const b = Blockly.Python.valueToCode(block, "BYTE", Blockly.Python.ORDER_NONE) || "0";
+  return `uart0.write(bytes([max(0, min(255, int(${b})))]))\n`;
 };
 
 Blockly.Python.forBlock["serial_any"] = function () {
@@ -62,6 +74,19 @@ Blockly.Python.forBlock["serial_read_n"] = function (block) {
   ensureUART0();
   const n = block.getFieldValue("N");
   return [`uart0.read(${n})`, Blockly.Python.ORDER_ATOMIC];
+};
+
+Blockly.Python.forBlock["serial_read_byte"] = function () {
+  ensureUART0();
+  const code = `(lambda _b: -1 if (_b is None or len(_b) == 0) else _b[0])(uart0.read(1))`;
+  return [code, Blockly.Python.ORDER_ATOMIC];
+};
+
+Blockly.Python.forBlock["serial_read_text"] = function () {
+  ensureUART0();
+  const code =
+    `(lambda _b: '' if _b is None else _b.decode('utf-8','ignore'))(uart0.read())`;
+  return [code, Blockly.Python.ORDER_ATOMIC];
 };
 
 Blockly.Python.forBlock["serial_read_all"] = function () {
@@ -85,6 +110,18 @@ Blockly.Python.forBlock["serial_readinto"] = function (block) {
   ensureUART0();
   const buf = Blockly.Python.valueToCode(block, "BUF", Blockly.Python.ORDER_NONE) || "bytearray(0)";
   return [`uart0.readinto(${buf})`, Blockly.Python.ORDER_ATOMIC];
+};
+
+Blockly.Python.forBlock["serial_byte_to_ascii_string"] = function (block) {
+  const b = Blockly.Python.valueToCode(block, "BYTE", Blockly.Python.ORDER_NONE) || "0";
+  const code = `(chr(max(0, min(255, int(${b})))))`;
+  return [code, Blockly.Python.ORDER_ATOMIC];
+};
+
+Blockly.Python.forBlock["serial_ascii_to_byte_string"] = function (block) {
+  const text = Blockly.Python.valueToCode(block, "TEXT", Blockly.Python.ORDER_NONE) || "''";
+  const code = `(lambda _s: 0 if len(str(_s)) == 0 else ord(str(_s)[0]) & 0xFF)(${text})`;
+  return [code, Blockly.Python.ORDER_ATOMIC];
 };
 
 Blockly.Python.forBlock["serial_flush"] = function () {
