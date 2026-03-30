@@ -725,15 +725,20 @@ addBoard({
                         },
                         {
                             xml: `
-    <block type="serial_write_bytes">
-      <value name="BYTES">
-        <shadow type="text">
-          <field name="TEXT">b'ABC\\n'</field>
-        </shadow>
-      </value>
-    </block>
+    <block type="serial_write_data_dynamic"></block>
   `
                         },
+//                         {
+//                             xml: `
+//     <block type="serial_write_bytes">
+//       <value name="BYTES">
+//         <shadow type="text">
+//           <field name="TEXT">b'ABC\\n'</field>
+//         </shadow>
+//       </value>
+//     </block>
+//   `
+//                         },
                         {
                             xml: `
     <block type="serial_write_byte">

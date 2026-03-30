@@ -143,3 +143,63 @@ Blockly.Python.forBlock["serial_end"] = function () {
   ensureUART0();
   return "uart0.deinit()\n";
 };
+
+function serialDynamicDefaultValue(typeValue) {
+  switch (typeValue) {
+    case "DEC":
+      return "65";
+    case "HEX":
+      return "'41'";
+    case "OCT":
+      return "'101'";
+    case "BIN":
+      return "'01000001'";
+    case "STRING":
+    default:
+      return "'Hello!'";
+  }
+}
+
+function serialDynamicPartExpr(typeValue, valueCode) {
+  const v = valueCode || serialDynamicDefaultValue(typeValue);
+
+  switch (typeValue) {
+    case "DEC":
+      return `bytes([max(0, min(255, int(${v})))])`;
+    case "HEX":
+      return `bytes([max(0, min(255, int(str(${v}), 16)))])`;
+    case "OCT":
+      return `bytes([max(0, min(255, int(str(${v}), 8)))])`;
+    case "BIN":
+      return `bytes([max(0, min(255, int(str(${v}), 2)))])`;
+    case "STRING":
+    default:
+      return `str(${v}).encode('utf-8')`;
+  }
+}
+
+Blockly.Python.forBlock["serial_write_data_dynamic"] = function (block) {
+  ensureUART0();
+
+  const parts = [];
+  const itemCount = block.itemCount_ || 1;
+
+  for (let i = 0; i < itemCount; i++) {
+    const typeValue = block.getFieldValue("TYPE" + i) || "STRING";
+    const rawValue = block.getFieldValue("VALUE" + i) || "";
+
+    if (typeValue === "DEC") {
+      parts.push(`bytes([max(0, min(255, int(${JSON.stringify(rawValue)})))])`);
+    } else if (typeValue === "HEX") {
+      parts.push(`bytes([max(0, min(255, int(${JSON.stringify(rawValue)}, 16)))])`);
+    } else if (typeValue === "OCT") {
+      parts.push(`bytes([max(0, min(255, int(${JSON.stringify(rawValue)}, 8)))])`);
+    } else if (typeValue === "BIN") {
+      parts.push(`bytes([max(0, min(255, int(${JSON.stringify(rawValue)}, 2)))])`);
+    } else {
+      parts.push(`str(${JSON.stringify(rawValue)}).encode('utf-8')`);
+    }
+  }
+
+  return `uart0.write(${parts.join(" + ") || "b''"})\n`;
+};

@@ -1,4 +1,4 @@
-Blockly.Python['controls_wait'] = function (block) {
+Blockly.Python.forBlock['controls_wait'] = function (block) {
   Blockly.Python.definitions_['from_time_import_sleep'] = 'from time import sleep';
 
   var value_time = Blockly.Python.valueToCode(block, 'time', Blockly.Python.ORDER_ATOMIC);
@@ -12,7 +12,7 @@ Blockly.JavaScript['controls_wait'] = function (block) {
   return code;
 };
 
-Blockly.Python['controls_wait_ms'] = function (block) {
+Blockly.Python.forBlock['controls_wait_ms'] = function (block) {
   Blockly.Python.definitions_['from_time_import_sleep_ms'] = 'from time import sleep_ms';
 
   var value_time = Blockly.Python.valueToCode(block, 'time', Blockly.Python.ORDER_ATOMIC);
@@ -26,7 +26,7 @@ Blockly.JavaScript['controls_wait_ms'] = function (block) {
   return code;
 };
 
-Blockly.Python['controls_wait_us'] = function (block) {
+Blockly.Python.forBlock['controls_wait_us'] = function (block) {
   Blockly.Python.definitions_['from_time_import_sleep_us'] = 'from time import sleep_us';
 
   var value_time = Blockly.Python.valueToCode(block, 'time', Blockly.Python.ORDER_ATOMIC);
@@ -40,9 +40,10 @@ Blockly.JavaScript['controls_wait_us'] = function (block) {
   return code;
 };
 
-Blockly.Python['controls_wait_until'] = function (block) {
+Blockly.Python.forBlock['controls_wait_until'] = function (block) {
+  Blockly.Python.definitions_['from_time_import_sleep'] = 'from time import sleep';
   var value_condition = Blockly.Python.valueToCode(block, 'condition', Blockly.Python.ORDER_ATOMIC);
-  var code = `while not ${value_condition}: pass\n`;
+  var code = `while not ${value_condition}:\n  sleep(0.001)\n`;
   return code;
 };
 
@@ -67,7 +68,7 @@ Blockly.JavaScript['controls_forever'] = function (block) {
   return code;
 };
 
-Blockly.Python['controls_on_start'] = function (block) {
+Blockly.Python.forBlock['controls_on_start'] = function (block) {
   var statements_block = Blockly.Python.statementToCode(block, 'block');
   const line = statements_block.split(/\r\n|\r|\n/);
   const code = line.map(a => a.substring(2)).join("\n") + "\n";
@@ -80,7 +81,7 @@ Blockly.JavaScript['controls_on_start'] = function (block) {
   return code;
 };
 
-Blockly.Python['controls_forever_no_connect'] = function (block) {
+Blockly.Python.forBlock['controls_forever_no_connect'] = function (block) {
   var statements_block = Blockly.Python.statementToCode(block, 'block');
   var code = `while True:\n${statements_block || "  pass"}\n`;
   return code;
@@ -92,7 +93,7 @@ Blockly.JavaScript['controls_forever_no_connect'] = function (block) {
   return code;
 };
 
-Blockly.Python['while_loop'] = function (block) {
+Blockly.Python.forBlock['while_loop'] = function (block) {
   var value_condition = Blockly.Python.valueToCode(block, 'condition', Blockly.Python.ORDER_ATOMIC);
   var statements_DO = Blockly.Python.statementToCode(block, 'DO');
   var code = `while ${value_condition}:\n${statements_DO}`;
