@@ -118,7 +118,13 @@ if (isElectron) {
                 { type: 'separator' },
                 {
                     label: 'Update Firmware',
-                    click: () => firewareUpgradeFlow()
+                    click: () => {
+                        if (typeof globalThis.firewareUpgradeFlow === "function") {
+                            globalThis.firewareUpgradeFlow();
+                        } else {
+                            console.error("firewareUpgradeFlow is not available on globalThis");
+                        }
+                    }
                 }
             ]
         },

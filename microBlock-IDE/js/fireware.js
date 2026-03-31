@@ -6,6 +6,9 @@ var firmwareUpdateMode = false;
     let uf2MountPath = "";
     let windowFirewareUpdate = null;
     let rp2DriveCheckTimer = null;
+    let rp2DrivePollingActive = false;
+    let rp2DrivePollingToken = 0;
+    const DEBUG_RP2 = false;
 
     const setFirmwareProgress = (percent, text = "") => {
         const p = Math.max(0, Math.min(100, Number(percent) || 0));
@@ -55,15 +58,90 @@ var firmwareUpdateMode = false;
 
     const findRP2DriveWindows = async () => {
         try {
-            const drives = await nodeDiskInfo.getDiskInfo();
+            const drives = await new Promise((resolve) => {
+                let stdout = "";
+                let stderr = "";
+
+                const psCommand =
+                    'Get-CimInstance Win32_LogicalDisk | Select-Object DeviceID,VolumeName | ConvertTo-Csv -NoTypeInformation';
+
+                const ps = spawn(
+                    "powershell.exe",
+                    [
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-Command",
+                        psCommand
+                    ],
+                    { shell: false }
+                );
+
+                ps.stdout.on("data", (data) => {
+                    stdout += data.toString();
+                });
+
+                ps.stderr.on("data", (data) => {
+                    stderr += data.toString();
+                });
+
+                ps.on("error", (err) => {
+                    console.error("powershell spawn error:", err);
+                    resolve([]);
+                });
+
+                ps.on("exit", () => {
+                    if (stderr.trim() && DEBUG_RP2) {
+                        console.log("powershell stderr:", stderr);
+                    }
+
+                    try {
+                        const lines = stdout
+                            .split(/\r?\n/)
+                            .map(line => line.trim())
+                            .filter(Boolean);
+
+                        const info = [];
+
+                        for (let i = 1; i < lines.length; i++) {
+                            const parts = lines[i]
+                                .split('","')
+                                .map(s => s.replace(/^"|"$/g, ""));
+
+                            const deviceID = parts[0] || "";
+                            const volumeName = parts[1] || "";
+
+                            if (deviceID) {
+                                info.push({
+                                    mounted: deviceID + "\\",
+                                    volumeName
+                                });
+                            }
+                        }
+
+                        resolve(info);
+                    } catch (e) {
+                        console.error("parse powershell error:", e);
+                        resolve([]);
+                    }
+                });
+            });
+
+            if (DEBUG_RP2) console.log("Drive", drives);
 
             for (const drive of drives) {
                 const mount = drive.mounted;
                 if (!mount) continue;
 
+                const label = (drive.volumeName || "").toUpperCase();
+                if (label === "RPI-RP2" || label === "BOOTSEL") {
+                    if (DEBUG_RP2) console.log("RP2 Drive info", drive);
+                    return mount;
+                }
+
                 const infoFile = path.join(mount, "INFO_UF2.TXT");
                 if (fileExists(infoFile)) {
-                    console.log("RP2 Drive info", drive);
+                    if (DEBUG_RP2) console.log("RP2 Drive info", drive);
                     return mount;
                 }
             }
@@ -86,7 +164,7 @@ var firmwareUpdateMode = false;
                 });
 
                 df_h.stderr.on("data", (data) => {
-                    console.log("df stderr:", data.toString());
+                    if (DEBUG_RP2) console.log("df stderr:", data.toString());
                 });
 
                 df_h.on("exit", () => {
@@ -108,7 +186,7 @@ var firmwareUpdateMode = false;
                 });
             });
 
-            console.log("Drive", drives);
+            if (DEBUG_RP2) console.log("Drive", drives);
 
             for (const drive of drives) {
                 const mount = drive.mounted;
@@ -116,7 +194,7 @@ var firmwareUpdateMode = false;
 
                 const infoFile = path.join(mount, "INFO_UF2.TXT");
                 if (fileExists(infoFile)) {
-                    console.log("RP2 Drive info", drive);
+                    if (DEBUG_RP2) console.log("RP2 Drive info", drive);
                     return mount;
                 }
             }
@@ -141,6 +219,51 @@ var firmwareUpdateMode = false;
         }
 
         return "";
+    };
+
+    const stopRP2DrivePolling = () => {
+        rp2DrivePollingActive = false;
+        rp2DrivePollingToken += 1;
+
+        if (rp2DriveCheckTimer) {
+            clearTimeout(rp2DriveCheckTimer);
+            rp2DriveCheckTimer = null;
+        }
+    };
+
+    const startRP2DrivePolling = () => {
+        stopRP2DrivePolling();
+
+        rp2DrivePollingActive = true;
+        const myToken = ++rp2DrivePollingToken;
+
+        const checkRP2DriveAvailable = async () => {
+            if (!rp2DrivePollingActive || myToken !== rp2DrivePollingToken) return;
+
+            try {
+                const mount = await findRP2Drive();
+
+                if (!rp2DrivePollingActive || myToken !== rp2DrivePollingToken) return;
+
+                if (mount) {
+                    uf2MountPath = mount;
+                    $("#firmware-upgrade-dialog .note-for-rp2").hide();
+                    $("#install-firmware-button").prop("disabled", false);
+                    stopRP2DrivePolling();
+                    return;
+                }
+            } catch (e) {
+                if (rp2DrivePollingActive && myToken === rp2DrivePollingToken) {
+                    console.error("checkRP2DriveAvailable error:", e);
+                }
+            }
+
+            if (!rp2DrivePollingActive || myToken !== rp2DrivePollingToken) return;
+
+            rp2DriveCheckTimer = setTimeout(checkRP2DriveAvailable, 1000);
+        };
+
+        checkRP2DriveAvailable();
     };
 
     const copyUF2WithProgress = (sourceFile, destFile) => {
@@ -206,10 +329,7 @@ var firmwareUpdateMode = false;
             board.firmware.map((a, index) => `<option value="${index}">${a.name}</option>`)
         );
 
-        if (rp2DriveCheckTimer) {
-            clearTimeout(rp2DriveCheckTimer);
-            rp2DriveCheckTimer = null;
-        }
+        stopRP2DrivePolling();
 
         if ((!isElectron) && (board?.chip === "ESP32")) {
             const w = 600, h = 460;
@@ -229,25 +349,7 @@ var firmwareUpdateMode = false;
                 } else {
                     $("#install-firmware-button").prop("disabled", true);
                     $("#firmware-upgrade-dialog .note-for-rp2").show();
-
-                    const checkRP2DriveAvailable = async () => {
-                        try {
-                            const mount = await findRP2Drive();
-
-                            if (mount) {
-                                uf2MountPath = mount;
-                                $("#firmware-upgrade-dialog .note-for-rp2").hide();
-                                $("#install-firmware-button").prop("disabled", false);
-                                return;
-                            }
-                        } catch (e) {
-                            console.error("checkRP2DriveAvailable error:", e);
-                        }
-
-                        rp2DriveCheckTimer = setTimeout(checkRP2DriveAvailable, 250);
-                    };
-
-                    checkRP2DriveAvailable();
+                    startRP2DrivePolling();
                 }
             } else {
                 $("#install-firmware-button").prop("disabled", false);
@@ -262,8 +364,6 @@ var firmwareUpdateMode = false;
 
     window.firewareUpgradeFlow = firewareUpgradeFlow;
     globalThis.firewareUpgradeFlow = firewareUpgradeFlow;
-
-    console.log("[fireware.js] firewareUpgradeFlow =", typeof globalThis.firewareUpgradeFlow);
 
     $("#install-firmware-button").off("click.fireware").on("click.fireware", async () => {
         $("#firmware-upgrade-dialog article.todo").hide();
@@ -490,15 +590,17 @@ var firmwareUpdateMode = false;
                 });
             }
         } else if (chipId.indexOf("RP2") >= 0) {
-            if (!isElectron) {
-                firmwareDownloadFile(fwPath, "firmware.uf2");
-                setFirmwareProgress(100, "Downloaded firmware.uf2");
-                showFirmwareDone(
-                    true,
-                    "Downloaded UF2 file. Please copy it to the RP2 drive manually."
-                );
-            } else {
-                try {
+            try {
+                stopRP2DrivePolling();
+
+                if (!isElectron) {
+                    firmwareDownloadFile(fwPath, "firmware.uf2");
+                    setFirmwareProgress(100, "Downloaded firmware.uf2");
+                    showFirmwareDone(
+                        true,
+                        "Downloaded UF2 file. Please copy it to the RP2 drive manually."
+                    );
+                } else {
                     if (!uf2MountPath) {
                         uf2MountPath = await findRP2Drive();
                     }
@@ -519,10 +621,10 @@ var firmwareUpdateMode = false;
                     await copyUF2WithProgress(sourceFile, destFile);
 
                     showFirmwareDone(true, "Firmware Upgrade Successful");
-                } catch (err) {
-                    console.error(err);
-                    showFirmwareDone(false, "Firmware Upgrade Fail : " + err.toString());
                 }
+            } catch (err) {
+                console.error(err);
+                showFirmwareDone(false, "Firmware Upgrade Fail : " + err.toString());
             }
         } else {
             showFirmwareDone(false, "Unsupported chip: " + chipId);
@@ -535,10 +637,7 @@ var firmwareUpdateMode = false;
     });
 
     $("#firmware-upgrade-dialog .close-btn").off("click.fireware").on("click.fireware", () => {
-        if (rp2DriveCheckTimer) {
-            clearTimeout(rp2DriveCheckTimer);
-            rp2DriveCheckTimer = null;
-        }
+        stopRP2DrivePolling();
         $("#firmware-upgrade-dialog").hide();
     });
 
@@ -548,6 +647,4 @@ var firmwareUpdateMode = false;
         $("#firmware-upgrade-dialog .close-btn").click();
         $("#upload-program").click();
     });
-
-    // setTimeout(() => firewareUpgradeFlow(), 500);
 })();

@@ -25,7 +25,7 @@ let serialConnectWeb = async () => {
 
     try {
         serialPort = await navigator.serial.requestPort();
-    } catch(e) {
+    } catch (e) {
         NotifyE("You haven't selected port.");
         console.log(e);
         return false;
@@ -33,22 +33,22 @@ let serialConnectWeb = async () => {
 
     try {
         await serialPort.open({ baudrate: 115200 });
-    } catch(e) {
+    } catch (e) {
         if (e.toString().indexOf("Failed to read the 'baudRate' property") >= 0) { // New version of Google Chrome ?
             try {
                 await serialPort.open({ baudRate: 115200 });
-            } catch(e) {
+            } catch (e) {
                 NotifyE("Can't open serial port, some program has used this port ?");
                 console.log(e);
                 serialPort = null;
-                
+
                 return false;
             }
         } else {
             NotifyE("Can't open serial port, some program has used this port ?");
             console.log("Error in try 2", e);
             serialPort = null;
-            
+
             return false;
         }
     }
@@ -59,7 +59,7 @@ let serialConnectWeb = async () => {
     if (dashboardIsReady) {
         dashboardWin.serialStatusUpdate("connected");
     }
-    
+
     writer = serialPort.writable.getWriter();
     // reader = serialPort.readable.getReader();
 
@@ -69,8 +69,8 @@ let serialConnectWeb = async () => {
     term.open($("#terminal > section")[0]);
     try {
         fitAddon.fit();
-    } catch(e) {
-        
+    } catch (e) {
+
     }
 
     serialPort.readable.pipeTo(new WritableStream({
@@ -89,7 +89,7 @@ let serialConnectWeb = async () => {
             } else {
                 inputBuffer = inputBuffer.concat(Array.from(chunk));
                 console.log(inputBuffer);
-            }     
+            }
         }
     }));
 
@@ -110,12 +110,12 @@ let showPortSelect = () => {
             $("#port-list").append(`<li data-port="${port.path}"><i class="fab fa-usb"></i> ${port.path} - ${port.manufacturer}</li>`);
         }
 
-        $("#port-list > li").click(function() {
+        $("#port-list > li").click(function () {
             $("#github-repository-list > li").removeClass("active");
             $(this).addClass("active");
         });
 
-        $("#port-select-button").click(function() {
+        $("#port-select-button").click(function () {
             let select_port = $("#port-list > li.active").attr("data-port");
             if (select_port) {
                 resolve(select_port);
@@ -123,13 +123,13 @@ let showPortSelect = () => {
                 reject("not_select");
             }
             $("#port-select-dialog").hide();
-        });  
-        
+        });
+
         $("#port-select-dialog .close-btn").click(() => {
             reject("cancle");
             $("#port-select-dialog").hide();
         });
-        
+
         $("#port-select-dialog").show();
     }));
 }
@@ -138,7 +138,7 @@ let serialConnectElectron = async (portName = "", autoConnect = false, uploadMod
     if (!portName) {
         try {
             portName = await showPortSelect();
-        } catch(e) {
+        } catch (e) {
             NotifyE("You haven't selected port.");
             console.log(e);
             return false;
@@ -152,11 +152,11 @@ let serialConnectElectron = async (portName = "", autoConnect = false, uploadMod
                 else resolve();
             });
         }));
-    } catch(e) {
+    } catch (e) {
         if (!autoConnect) NotifyE("Can't open serial port, some program has used this port ?");
         console.log(e);
         serialPort = null;
-        
+
         return false;
     }
 
@@ -166,7 +166,7 @@ let serialConnectElectron = async (portName = "", autoConnect = false, uploadMod
     if (sharedObj.dashboardWin) {
         sharedObj.dashboardWin.webContents.send("serial-status", "connected");
     }
-    
+
     // Fixed ESP32 go to Bootloader Mode after press Reset Button
     serialPort.set({
         dtr: true,
@@ -192,8 +192,8 @@ let serialConnectElectron = async (portName = "", autoConnect = false, uploadMod
     term.open($("#terminal > section")[0]);
     try {
         fitAddon.fit();
-    } catch(e) {
-        
+    } catch (e) {
+
     }
 
     serialPort.on("data", (chunk) => {
@@ -224,7 +224,7 @@ let serialConnectElectron = async (portName = "", autoConnect = false, uploadMod
 }
 
 let serialConnect = () => {
-    uploadFileLog = { };
+    uploadFileLog = {};
     return (!isElectron) ? serialConnectWeb() : serialConnectElectron()
 };
 
@@ -253,7 +253,7 @@ let boardReset = (enterToBootMode) => { // Hard-reset
                 serialPort.set({ // EN = 1, BOOT = 1
                     dtr: true,
                     rts: true
-                }, () => 
+                }, () =>
                     serialPort.set({ // EN = 0, BOOT = 1
                         dtr: false,
                         rts: true
@@ -309,7 +309,7 @@ let boardReset = (enterToBootMode) => { // Hard-reset
 
 class UploadOnBoot {
     constructor() {
-        
+
     }
 
     async start() {
@@ -320,7 +320,7 @@ class UploadOnBoot {
         }
 
         serialLastData = "";
-        await writeSerialBytes([ 0x1F, 0xF1, 0xFF ]); // Sync bytes
+        await writeSerialBytes([0x1F, 0xF1, 0xFF]); // Sync bytes
         if (!await this.checkEndWith("upload mode\r\n", 100, 30)) {
             throw "Send sync bytes fail";
         }
@@ -338,7 +338,7 @@ class UploadOnBoot {
             throw "Check version fail";
         }
 
-        return { 
+        return {
             version: checkVersion[1],
             date: checkVersion[2],
             board: checkVersion[3],
@@ -383,7 +383,7 @@ class UploadOnBoot {
             content.push(encodeData.length & 0xFF);
             content = content.concat(Array.from(encodeData));
             let dataSum = 0;
-            for (let index=0;index<encodeData.length;index++) {
+            for (let index = 0; index < encodeData.length; index++) {
                 dataSum += encodeData[index];
                 dataSum = dataSum & 0xFF;
             }
@@ -392,9 +392,9 @@ class UploadOnBoot {
         await writeSerialBytes(content);
     }
 
-    async checkEndWith(str, delay=100, max_try=10) {
+    async checkEndWith(str, delay = 100, max_try = 10) {
         let okFlag = false;
-        for (let i=0;i<max_try;i++) {
+        for (let i = 0; i < max_try; i++) {
             await sleep(delay);
             if (serialLastData.endsWith(str)) {
                 okFlag = true;
@@ -404,9 +404,9 @@ class UploadOnBoot {
         return okFlag;
     }
 
-    async checkIndexOf(str, stop=100, max_try=10) {
+    async checkIndexOf(str, stop = 100, max_try = 10) {
         let okFlag = false;
-        for (let i=0;i<max_try;i++) {
+        for (let i = 0; i < max_try; i++) {
             await sleep(stop);
             if (serialLastData.indexOf(str) >= 0) {
                 okFlag = true;
@@ -446,7 +446,7 @@ class UploadViaREPL {
 
         let checkVersion = /MicroPython\s+([^\s]+)\s+on\s+([0-9\-]+);\s?(.+)\s+with\s+([^\s]+)$/m.exec(serialLastData);
         if (checkVersion) {
-            this.firmwareInfo = { 
+            this.firmwareInfo = {
                 version: checkVersion[1],
                 date: checkVersion[2],
                 board: checkVersion[3],
@@ -492,7 +492,7 @@ class UploadViaREPL {
                     if (!await this.sendLineLoopWaitMatch(`p(w(${JSON.stringify(chunkContent2).replace(/[\u007F-\uFFFF]/g, chr => "\\u" + ("0000" + chr.charCodeAt(0).toString(16)).substr(-4))}))`, /OK[0-9]{1,3}[^>]*>/gm, isElectron ? 50 : 100, 20)) {
                         throw `write ${chunkContent2.length} fail !`
                     }
-        
+
                     let n = /OK([0-9]{1,3})[^>]*>/gm.exec(serialLastData);
                     if (!n) {
                         throw "Match fail";
@@ -528,15 +528,15 @@ class UploadViaREPL {
             }
 
             firstWriteFlag = false;
-            
+
         }
     }
 
     async end() {
         await writeSerialByte(2); // Ctrl + B, Exit from Raw REPL
 
-        RawREPLMode = false;   
-        
+        RawREPLMode = false;
+
         let board = boards.find(board => board.id === boardId);
         if (board?.chip.indexOf("RP2") >= 0) {
             await writeSerialByte(4); // Soft reset
@@ -546,24 +546,24 @@ class UploadViaREPL {
         }
     }
 
-    async sendByteLoopWaitNextCommand(data, delay=100, max_try=5) {
+    async sendByteLoopWaitNextCommand(data, delay = 100, max_try = 5) {
         let okFlag = false;
-        for (let i=0;i<max_try;i++) {
+        for (let i = 0; i < max_try; i++) {
             await writeSerialByte(data);
             await sleep(delay);
             if (microPythonIsReadyNextCommand()) {
                 okFlag = true;
                 break;
             }
-            
+
         }
         return okFlag;
     }
 
-    async sendLineLoopWaitMatch(line, regex, delay=100, max_try=5) {
+    async sendLineLoopWaitMatch(line, regex, delay = 100, max_try = 5) {
         await this.writeSerialNewLine(line);
         let okFlag = false;
-        for (let i=0;i<max_try;i++) {
+        for (let i = 0; i < max_try; i++) {
             await sleep(delay);
             if (serialLastData.match(regex)) {
                 okFlag = true;
@@ -576,6 +576,78 @@ class UploadViaREPL {
     writeSerialNewLine(text) {
         writeSerial(text + ((!RawREPLMode) ? "\r\n" : "\x04"));
     }
+};
+let getMSCDrivesWindows = async () => {
+    return await new Promise((resolve) => {
+        let stdout = "";
+        let stderr = "";
+
+        const psCommand =
+            'Get-CimInstance Win32_LogicalDisk | Select-Object DeviceID,VolumeName,Size | ConvertTo-Csv -NoTypeInformation';
+
+        const ps = spawn(
+            "powershell.exe",
+            [
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                psCommand
+            ],
+            { shell: false }
+        );
+
+        ps.stdout.on("data", (data) => {
+            stdout += data.toString();
+        });
+
+        ps.stderr.on("data", (data) => {
+            stderr += data.toString();
+        });
+
+        ps.on("error", (err) => {
+            console.error("powershell spawn error:", err);
+            resolve([]);
+        });
+
+        ps.on("exit", () => {
+            if (stderr.trim()) {
+                console.log("powershell stderr:", stderr);
+            }
+
+            try {
+                const lines = stdout
+                    .split(/\r?\n/)
+                    .map(line => line.trim())
+                    .filter(Boolean);
+
+                const info = [];
+
+                for (let i = 1; i < lines.length; i++) {
+                    const parts = lines[i]
+                        .split('","')
+                        .map(s => s.replace(/^"|"$/g, ""));
+
+                    const deviceID = parts[0] || "";
+                    const volumeName = parts[1] || "";
+                    const size = parts[2] || "";
+
+                    if (deviceID) {
+                        info.push({
+                            mounted: deviceID + "\\",
+                            volumeName,
+                            blocks: Number(size) || 0
+                        });
+                    }
+                }
+
+                resolve(info);
+            } catch (e) {
+                console.error("parse powershell error:", e);
+                resolve([]);
+            }
+        });
+    });
 };
 
 class UploadViaMSC {
@@ -601,14 +673,13 @@ class UploadViaMSC {
         await writeSerialByte(4); // Soft reset
         await sleep(300);
 
-        // serialLastData = "";
         if (!await this.sendByteLoopWaitNextCommand(3, 100, 100)) { // Ctrl + C
             throw "Exit main program error";
         }
 
         let checkVersion = /MicroPython\s+([^\s]+)\s+on\s+([0-9\-]+);\s?(.+)\s+with\s+([^\s]+)$/m.exec(serialLastData);
         if (checkVersion) {
-            this.firmwareInfo = { 
+            this.firmwareInfo = {
                 version: checkVersion[1],
                 date: checkVersion[2],
                 board: checkVersion[3],
@@ -620,42 +691,59 @@ class UploadViaMSC {
 
         let drives = [];
         if (platform === "win32") {
-            drives = await nodeDiskInfo.getDiskInfo();
+            drives = await getMSCDrivesWindows();
         } else if (platform === "linux" || platform === "darwin") {
             throw `MSC not support in linux and darwin !`;
 
             drives = await (new Promise((resolve, reject) => {
                 let stdout = "";
 
-                const df_h = spawn("df -a", [], {shell: true});
+                const df_h = spawn("df -a", [], { shell: true });
 
                 df_h.stdout.on("data", (data) => {
-                    // console.log("stdout:", data.toString());
                     stdout = data.toString();
                 });
-                
+
                 df_h.stderr.on("data", (data) => {
-                    // console.log("stderr:", data.toString());
                 });
-                
+
                 df_h.on("exit", (code) => {
-                    // console.warn("esptool error code", code);
                     const info = stdout.split("\n")
-                                        .filter(a => a.startsWith("/dev"))
-                                        .map(a => a.split(" ").filter(a => a.length !== 0))
-                                        .map(a => ({ 
-                                            filesystem: a[0],
-                                            blocks: +a[1] * 1024,
-                                            mounted: a[5],
-                                        }));
+                        .filter(a => a.startsWith("/dev"))
+                        .map(a => a.split(" ").filter(a => a.length !== 0))
+                        .map(a => ({
+                            filesystem: a[0],
+                            blocks: +a[1] * 1024,
+                            mounted: a[5],
+                        }));
                     resolve(info);
                 });
             }))
         }
+
         console.log("All drive:", drives);
-        
+
         const board = boards.find(board => board.id === boardId);
-        const RP2DriveInfo = drives.find(a => a.blocks === board.mscSize);
+
+        let RP2DriveInfo = drives.find(a => a.blocks === board.mscSize);
+
+        if (!RP2DriveInfo) {
+            RP2DriveInfo = drives.find(a => {
+                const label = (a.volumeName || "").toUpperCase();
+                return label === "RPI-RP2" || label === "BOOTSEL";
+            });
+        }
+
+        if (!RP2DriveInfo) {
+            RP2DriveInfo = drives.find(a => {
+                try {
+                    return nodeFS.existsSync(path.join(a.mounted, "INFO_UF2.TXT"));
+                } catch (e) {
+                    return false;
+                }
+            });
+        }
+
         if (!RP2DriveInfo) {
             throw `MSC drive not found !`;
         }
@@ -684,24 +772,24 @@ class UploadViaMSC {
         await sleep(300);
     }
 
-    async sendByteLoopWaitNextCommand(data, delay=100, max_try=5) {
+    async sendByteLoopWaitNextCommand(data, delay = 100, max_try = 5) {
         let okFlag = false;
-        for (let i=0;i<max_try;i++) {
+        for (let i = 0; i < max_try; i++) {
             await writeSerialByte(data);
             await sleep(delay);
             if (microPythonIsReadyNextCommand()) {
                 okFlag = true;
                 break;
             }
-            
+
         }
         return okFlag;
     }
 
-    async sendLineLoopWaitMatch(line, regex, delay=100, max_try=5) {
+    async sendLineLoopWaitMatch(line, regex, delay = 100, max_try = 5) {
         await this.writeSerialNewLine(line);
         let okFlag = false;
-        for (let i=0;i<max_try;i++) {
+        for (let i = 0; i < max_try; i++) {
             await sleep(delay);
             if (serialLastData.match(regex)) {
                 okFlag = true;
@@ -797,7 +885,7 @@ let realDeviceUploadFlow = async (code) => {
             }
         }
     }
-    
+
     filesUpload = filesUpload.concat(extra_files);
     filesUpload.push({
         file: "main.py",
@@ -872,14 +960,14 @@ let realDeviceUploadFlow = async (code) => {
             await method.upload(a.file, a.content);
         }
 
-        await method.end(); 
+        await method.end();
         delete method;
-    } catch(e) {
+    } catch (e) {
         throw e;
     }
 }
 
-$("#upload-program").click(async function() {
+$("#upload-program").click(async function () {
     statusLog("Start Upload");
     t0 = (new Date()).getTime();
 
@@ -929,7 +1017,7 @@ $("#upload-program").click(async function() {
         if (isArduinoPlatform) {
             $("#arduino-console-dialog .title").text("Upload Successful");
         }
-    } catch(e) {
+    } catch (e) {
         $("#upload-log-dialog .title").text("Upload Fail");
         NotifyE("Upload Fail !");
         statusLog(`Upload fail because ${e}`);
@@ -939,7 +1027,7 @@ $("#upload-program").click(async function() {
             $("#arduino-console-dialog .title").text("Upload Fail");
         }
     }
-    
+
 
     $("#upload-program").removeClass("loading");
 });
@@ -963,10 +1051,10 @@ async function writeSerial(text) {
 
 async function writeSerialByte(data) {
     if (!isElectron) {
-        let buff = new Uint8Array([ data ]);
+        let buff = new Uint8Array([data]);
         await writer.write(buff);
     } else {
-        let b = Buffer.from([ data ]);
+        let b = Buffer.from([data]);
         await (new Promise(resolve => serialPort.write(Buffer.from(b), resolve)));
     }
 }
@@ -977,7 +1065,7 @@ async function writeSerialBytes(data) {
     } else {
         let b = Buffer.from(data);
         let writeSize = 0;
-        while(writeSize < b.length) {
+        while (writeSize < b.length) {
             const len = Math.min(1024, b.length - writeSize);
             const block = b.slice(writeSize, writeSize + len);
             await new Promise(resolve => serialPort.write(block, resolve));
@@ -1008,7 +1096,7 @@ let moduleBuiltIn = [
     "esp", "uarray", "upip", "webrepl",
     "esp32", "ubinascii", "upip_utarfile", "webrepl_setup",
     "flashbdev", "ucollections", "upysh", "websocket_helper",
-    "time", 
+    "time",
 ];
 
 let findIncludeModuleNameInCode = (code) => {
@@ -1038,7 +1126,7 @@ $("#connect-device").click(async () => {
         if (await serialConnect()) {
             let okFlag;
             okFlag = false;
-            for (let i=0;i<100;i++) {
+            for (let i = 0; i < 100; i++) {
                 await writeSerialByte(3); // Ctrl + C
                 await sleep(50);
                 if (microPythonIsReadyNextCommand()) {
