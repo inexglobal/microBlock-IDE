@@ -7,6 +7,14 @@ Offline desktop version of the microBlock IDE.
 
 ## Getting Started
 
+We recommend using **Node.js v12.22.12** via `nvm` to develop this repository.
+
+```bash
+nvm install 12.22.12
+nvm use 12.22.12
+
+## Getting Started
+
 ### 1. Clone the project
 ```bash
 git clone --recurse-submodules https://github.com/microBlock-IDE/microBlock-IDE-offline.git
