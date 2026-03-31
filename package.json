@@ -8,7 +8,8 @@
     "install": "electron-rebuild -f -w \"wifi-control\"",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
-    "dist:win": "electron-builder --win nsis --x64",
+    "dist:win32": "electron-builder --win nsis --ia32",
+    "dist:win64": "electron-builder --win nsis --x64",
     "dist:mac": "electron-builder --mac zip",
     "dist:linux": "electron-builder --linux AppImage"
   },
@@ -51,7 +52,9 @@
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "runAfterFinish": false
+      "runAfterFinish": false,
+      "include": "build/installer.nsh",
+      "installerSidebar": "build/installerSidebar.bmp"
     },
     "mac": {
       "category": "public.app-category.developer-tools",
