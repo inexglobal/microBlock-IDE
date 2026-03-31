@@ -17,7 +17,7 @@ nvm use 12.22.12
 
 ### 1. Clone the project
 ```bash
-git clone --recurse-submodules https://github.com/microBlock-IDE/microBlock-IDE-offline.git
+git clone https://github.com/inexglobal/microBlock-IDE.git(https://github.com/inexglobal/microBlock-IDE.git)
 cd microBlock-IDE-offline
 ```
 
