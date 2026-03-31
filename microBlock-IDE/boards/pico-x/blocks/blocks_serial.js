@@ -439,10 +439,10 @@ Blockly.Blocks["serial_write_data_dynamic"] = {
 
       const dropdown = new Blockly.FieldDropdown([
         ["String", "STRING"],
-        ["Dec", "DEC"],
-        ["Hex", "HEX"],
-        ["Oct", "OCT"],
-        ["Bin", "BIN"]
+        ["Decimal", "DEC"],
+        ["Hexadecimal", "HEX"],
+        ["Octal", "OCT"],
+        ["Binary", "BIN"]
       ]);
 
       dropdown.setValue(typeValue);
