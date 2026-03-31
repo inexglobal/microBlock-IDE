@@ -47,6 +47,12 @@
       "target": "msi",
       "icon": "build/favicon.ico"
     },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "runAfterFinish": false
+    },
     "mac": {
       "category": "public.app-category.developer-tools",
       "target": "default",
