@@ -26,7 +26,7 @@ let serialConnectWeb = async () => {
     try {
         serialPort = await navigator.serial.requestPort();
     } catch(e) {
-        NotifyE("You not select port");
+        NotifyE("You haven't selected port.");
         console.log(e);
         return false;
     }
@@ -38,14 +38,14 @@ let serialConnectWeb = async () => {
             try {
                 await serialPort.open({ baudRate: 115200 });
             } catch(e) {
-                NotifyE("Can't open serial port, some program use this port ?");
+                NotifyE("Can't open serial port, some program has used this port ?");
                 console.log(e);
                 serialPort = null;
                 
                 return false;
             }
         } else {
-            NotifyE("Can't open serial port, some program use this port ?");
+            NotifyE("Can't open serial port, some program has used this port ?");
             console.log("Error in try 2", e);
             serialPort = null;
             
@@ -139,7 +139,7 @@ let serialConnectElectron = async (portName = "", autoConnect = false, uploadMod
         try {
             portName = await showPortSelect();
         } catch(e) {
-            NotifyE("You not select port");
+            NotifyE("You haven't selected port.");
             console.log(e);
             return false;
         }
@@ -153,7 +153,7 @@ let serialConnectElectron = async (portName = "", autoConnect = false, uploadMod
             });
         }));
     } catch(e) {
-        if (!autoConnect) NotifyE("Can't open serial port, some program use this port ?");
+        if (!autoConnect) NotifyE("Can't open serial port, some program has used this port ?");
         console.log(e);
         serialPort = null;
         
