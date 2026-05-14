@@ -146,11 +146,11 @@ if (isElectron) {
                 { type: 'separator' },
                 {
                     label: 'Join Us on Facebook',
-                    click: () => shell.openExternal('https://www.facebook.com/microblockide')
+                    click: () => shell.openExternal('https://www.facebook.com/innovativeexperiment/')
                 },
                 {
                     label: 'Report Issue',
-                    click: () => shell.openExternal('https://github.com/microBlock-IDE/microBlock-IDE/issues')
+                    click: () => shell.openExternal('https://github.com/inexglobal/microBlock-IDE/issues')
                 },
                 { type: 'separator' },
                 {
@@ -159,7 +159,7 @@ if (isElectron) {
                 },
                 {
                     label: 'Download Last version',
-                    click: () => shell.openExternal('https://github.com/microBlock-IDE/microBlock-IDE-offline/releases')
+                    click: () => shell.openExternal('https://github.com/inexglobal/microBlock-IDE/releases')
                 },
                 { type: 'separator' },
                 {
