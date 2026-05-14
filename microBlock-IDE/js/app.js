@@ -696,12 +696,11 @@ if (isElectron) {
 
     // Update Check
     checkUpdate = async () => {
-        let lastPackageFile = await fetch("https://api.github.com/repos/microBlock-IDE/microBlock-IDE-offline/contents/package.json");
+        let lastPackageFile = await fetch("https://api.github.com/repos/inexglobal/microBlock-IDE/contents/package.json");
         if (lastPackageFile.status !== 200) {
             console.error("Get package.json fail");
             return;
         }
-
         lastPackageFile = await lastPackageFile.json();
         lastPackageFile = Base64.decode(lastPackageFile.content);
         lastPackageFile = JSON.parse(lastPackageFile);

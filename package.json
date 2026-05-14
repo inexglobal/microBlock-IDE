@@ -15,14 +15,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/microBlock-IDE/microBlock-IDE-offline.git"
+    "url": "git+https://github.com/inexglobal/microBlock-IDE.git"
   },
   "author": "microBlock",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/microBlock-IDE/microBlock-IDE-offline/issues"
+    "url": "https://github.com/inexglobal/microBlock-IDE/issues"
   },
-  "homepage": "https://github.com/microBlock-IDE/microBlock-IDE-offline#readme",
+  "homepage": "https://github.com/inexglobal/microBlock-IDE#readme",
   "devDependencies": {
     "check-dependencies": "1.1.0",
     "electron": "9.2.0",
