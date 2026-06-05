@@ -663,18 +663,18 @@ class UploadViaMSC {
             await this.sendByteLoopWaitNextCommand(2, 100, 5); // Ctrl + B, Exit Raw REPL
         }
         RawREPLMode = false;
-
-        // Stop the old user program as much as possible before starting MSC upload.
-        serialLastData = "";
-        await this.stopUserProgram(5, 120, false);
-
-        // Soft reset once to bring MicroPython back to a clean REPL state.
-        serialLastData = "";
-        await writeSerialByte(4); // Ctrl + D, MicroPython soft reset
-        await sleep(800);
+11
 
         serialLastData = "";
-        if (!await this.stopUserProgram(8, 150, true)) {
+        if (!await this.sendByteLoopWaitNextCommand(3, 100, 100)) { // Ctrl + C
+            throw "Access to MicroPython error";
+        }
+
+        serialLastData = "";
+        await writeSerialByte(4); // Soft reset
+        await sleep(300);
+
+        if (!await this.sendByteLoopWaitNextCommand(3, 100, 100)) { // Ctrl + C
             throw "Exit main program error";
         }
 
@@ -695,17 +695,38 @@ class UploadViaMSC {
             drives = await getMSCDrivesWindows();
         } else if (platform === "linux" || platform === "darwin") {
             throw `MSC not support in linux and darwin !`;
+
+            drives = await (new Promise((resolve, reject) => {
+                let stdout = "";
+
+                const df_h = spawn("df -a", [], { shell: true });
+
+                df_h.stdout.on("data", (data) => {
+                    stdout = data.toString();
+                });
+
+                df_h.stderr.on("data", (data) => {
+                });
+
+                df_h.on("exit", (code) => {
+                    const info = stdout.split("\n")
+                        .filter(a => a.startsWith("/dev"))
+                        .map(a => a.split(" ").filter(a => a.length !== 0))
+                        .map(a => ({
+                            filesystem: a[0],
+                            blocks: +a[1] * 1024,
+                            mounted: a[5],
+                        }));
+                    resolve(info);
+                });
+            }))
         }
 
         console.log("All drive:", drives);
 
-        const board = boards.find(board => board.id === boardId) || {};
+        const board = boards.find(board => board.id === boardId);
 
-        let RP2DriveInfo = null;
-
-        if (board.mscSize) {
-            RP2DriveInfo = drives.find(a => a.blocks === board.mscSize);
-        }
+        let RP2DriveInfo = drives.find(a => a.blocks === board.mscSize);
 
         if (!RP2DriveInfo) {
             RP2DriveInfo = drives.find(a => {
@@ -729,228 +750,27 @@ class UploadViaMSC {
         }
 
         this.mount = RP2DriveInfo.mounted;
-
-        statusLog(`MSC drive found: ${this.mount}`);
-
-        // Clean old MicroPython program files before uploading new files.
-        await this.cleanFlashFiles();
-    }
-
-    async stopUserProgram(maxTry = 5, delay = 120, requirePrompt = false) {
-        let okFlag = false;
-
-        for (let i = 0; i < maxTry; i++) {
-            await writeSerialByte(3); // Ctrl + C
-            await sleep(delay);
-
-            if (microPythonIsReadyNextCommand()) {
-                okFlag = true;
-                break;
-            }
-        }
-
-        if (requirePrompt) {
-            return okFlag;
-        }
-
-        return true;
-    }
-
-
-    async cleanFlashFiles() {
-        if (!isElectron || !this.mount) {
-            return;
-        }
-
-        const keepNames = [
-            "boot.py",
-            "lib",
-            "INFO_UF2.TXT",
-            "INDEX.HTM",
-            "CURRENT.UF2",
-            "BOOT_UF2.TXT",
-            "System Volume Information",
-            ".Trashes",
-            ".fseventsd",
-            ".Spotlight-V100"
-        ];
-
-        const removableExtensions = [
-            ".py",
-            ".mpy",
-            ".xml"
-        ];
-
-        const removableDirectories = [
-            "__pycache__"
-        ];
-
-        const shouldRemove = (name, isDirectory) => {
-            if (keepNames.indexOf(name) >= 0) {
-                return false;
-            }
-
-            if (isDirectory) {
-                return removableDirectories.indexOf(name) >= 0;
-            }
-
-            const lowerName = name.toLowerCase();
-            return removableExtensions.some(ext => lowerName.endsWith(ext));
-        };
-
-        const removeRecursive = async (targetPath) => {
-            const stat = nodeFS.statSync(targetPath);
-
-            if (stat.isDirectory()) {
-                for (const childName of nodeFS.readdirSync(targetPath)) {
-                    await removeRecursive(path.join(targetPath, childName));
-                }
-                nodeFS.rmdirSync(targetPath);
-            } else {
-                nodeFS.unlinkSync(targetPath);
-            }
-        };
-
-        try {
-            for (const fileName of nodeFS.readdirSync(this.mount)) {
-                const fullPath = path.join(this.mount, fileName);
-                const stat = nodeFS.statSync(fullPath);
-
-                if (!shouldRemove(fileName, stat.isDirectory())) {
-                    continue;
-                }
-
-                statusLog(`Removing old file ${fileName}`);
-                await removeRecursive(fullPath);
-            }
-        } catch (e) {
-            console.warn("Clean flash files fail:", e);
-            throw `Clean flash files fail: ${e}`;
-        }
     }
 
     async getFirmwareInfo() {
         return this.firmwareInfo;
     }
 
-    safeFsync(fd, label = "fsync") {
-        try {
-            nodeFS.fsyncSync(fd);
-            return true;
-        } catch (e) {
-            // Some MSC / FAT drives on Windows do not permit fsync().
-            // This is not a fatal upload error because closeSync() and delay
-            // still allow the OS to flush writes to the device.
-            if (e && (e.code === "EPERM" || e.code === "EINVAL" || e.code === "ENOTSUP")) {
-                console.warn(`${label} skipped: ${e.code}`);
-                return false;
-            }
-
-            throw e;
-        }
-    }
-
-    async writeFileSafe(filePath, content) {
-        const tmpPath = filePath + ".tmp";
-        let fd = null;
-
+    async upload(fileName, content) {
         if (content.length == 0) {
             content = "#No Code";
         }
 
-        const data = Buffer.isBuffer(content) ? content : Buffer.from(String(content), "utf8");
-
-        try {
-            if (nodeFS.existsSync(tmpPath)) {
-                nodeFS.unlinkSync(tmpPath);
-            }
-
-            fd = nodeFS.openSync(tmpPath, "w");
-            nodeFS.writeSync(fd, data, 0, data.length, 0);
-
-            // Best-effort flush. Do not fail upload if Windows/MSC denies fsync().
-            this.safeFsync(fd, "MSC tmp fsync");
-
-            nodeFS.closeSync(fd);
-            fd = null;
-
-            if (nodeFS.existsSync(filePath)) {
-                nodeFS.unlinkSync(filePath);
-            }
-
-            nodeFS.renameSync(tmpPath, filePath);
-
-            // Do not fsync the final file after rename.
-            // On many MicroPython MSC/FAT volumes on Windows this can throw:
-            // EPERM: operation not permitted, fsync
-            await sleep(180);
-        } catch (e) {
-            if (fd !== null) {
-                try {
-                    nodeFS.closeSync(fd);
-                } catch (_) {}
-            }
-
-            try {
-                if (nodeFS.existsSync(tmpPath)) {
-                    nodeFS.unlinkSync(tmpPath);
-                }
-            } catch (_) {}
-
-            throw e;
-        }
-    }
-
-    async flushMSC() {
-        if (!this.mount) {
-            return;
-        }
-
-        statusLog("Waiting for MSC filesystem flush");
-
-        // A small marker file helps Windows / MSC settle pending writes.
-        const markerPath = path.join(this.mount, ".microblock_upload_flush");
-
-        try {
-            await this.writeFileSafe(markerPath, String(Date.now()));
-            await sleep(200);
-
-            if (nodeFS.existsSync(markerPath)) {
-                nodeFS.unlinkSync(markerPath);
-            }
-        } catch (e) {
-            console.warn("MSC marker flush warning:", e);
-        }
-
-        await sleep(1200);
-    }
-
-    async upload(fileName, content) {
-        const filePath = path.join(this.mount, "/", fileName);
-
-        statusLog(`Uploading ${fileName}`);
-        await this.writeFileSafe(filePath, content);
+        await writeFileAsync(path.join(this.mount, "/", fileName), content);
+        // await sleep(50);
     }
 
     async end() {
-        // Make sure the host OS has enough time to flush MSC writes before reset.
-        await this.flushMSC();
-        await sleep(1500);
-
-        // Stop the uploaded program / old program before issuing a reset command.
-        serialLastData = "";
-        await this.stopUserProgram(4, 150, false);
-
-        // Use machine.reset() as a stronger software reset than Ctrl+D.
-        try {
-            this.writeSerialNewLine(`import machine; machine.reset()`);
-        } catch (e) {
-            console.warn("machine.reset() failed, fallback to Ctrl+D:", e);
-            await writeSerialByte(4); // Fallback soft reset
+        if (os.platform() === "linux") {
+            await sleep(2000);
         }
-
-        // Wait for USB serial to disconnect/reconnect and for MicroPython to boot.
-        await sleep(2500);
+        await writeSerialByte(4); // Soft reset
+        await sleep(300);
     }
 
     async sendByteLoopWaitNextCommand(data, delay = 100, max_try = 5) {
@@ -1097,8 +917,8 @@ let realDeviceUploadFlow = async (code) => {
                 await method.start();
             } catch (e) {
                 console.warn(e);
-                NotifyE(`MSC upload failed: ${e}`);
-                throw e;
+                NotifyW("Switch to upload via RawREPL [RECOMMENDED Upgrade fireware]");
+                await enterToREPL();
             }
         } else {
             method = new UploadOnBoot();
@@ -1119,17 +939,11 @@ let realDeviceUploadFlow = async (code) => {
             let info = await method.getFirmwareInfo();
             console.log("firmware info", info);
 
-            let boardInfo = boards.find(board => board.id === boardId);
-            let firmwareInfo = null;
-
-            if (boardInfo && Array.isArray(boardInfo.firmware) && boardInfo.firmware.length > 0) {
-                firmwareInfo = boardInfo.firmware[0];
-            }
-
-            if (info && firmwareInfo && typeof firmwareInfo.version !== "undefined") {
-                if (firmwareInfo.version !== info.version) {
-                    if (typeof firmwareInfo.date !== "undefined" && typeof info.date !== "undefined") {
-                        let dbFwDate = new Date(firmwareInfo.date).getTime();
+            let board = boards.find(board => board.id === boardId);
+            if (typeof board.firmware[0].version !== "undefined") {
+                if (board.firmware[0].version !== info.version) {
+                    if (typeof board.firmware[0].date !== "undefined") {
+                        let dbFwDate = new Date(board.firmware[0].date).getTime();
                         let currentFwDate = new Date(info.date).getTime();
                         if (currentFwDate < dbFwDate) {
                             if (isElectron) {
@@ -1154,58 +968,33 @@ let realDeviceUploadFlow = async (code) => {
     }
 }
 
-let uploadProgramIsRunning = false;
-
 $("#upload-program").click(async function () {
-    if (uploadProgramIsRunning) {
-        console.warn("Upload is already running. Ignore duplicate upload click.");
-        NotifyW("Upload is already running");
-        statusLog("Upload ignored because another upload is still running");
-        return;
-    }
-
-    uploadProgramIsRunning = true;
-
-    const uploadButton = $("#upload-program");
-    uploadButton.addClass("loading");
-    uploadButton.prop("disabled", true);
-    uploadButton.addClass("disabled");
-
     statusLog("Start Upload");
     t0 = (new Date()).getTime();
 
-    let isArduinoPlatform = false;
+    // setTimeout(() => $("#upload-program").addClass("loading"), 1);
+    $("#upload-program").addClass("loading");
 
+    let code;
+    extra_files = [];
+    const file_list = fs.ls("/");
+    if (file_list.indexOf("main.xml") >= 0) {
+        code = xmlToCode(fs.read(`/main.xml`));
+    } else if (file_list.indexOf("main.py") >= 0) {
+        code = fs.read(`/main.py`);
+    }
+
+    console.log(code);
+    const { isArduinoPlatform } = boards.find(board => board.id === boardId);
+    if (isArduinoPlatform) {
+        // $("#upload-console-log").html("");
+        if (+localStorage.getItem("show-console-upload") !== -1) {
+            $("#arduino-console-dialog .title").text("Uploading...");
+            ShowDialog($("#arduino-console-dialog"));
+        }
+        arduinoConsoleTerm.clear();
+    }
     try {
-        let code;
-        extra_files = [];
-        const file_list = fs.ls("/");
-
-        if (file_list.indexOf("main.xml") >= 0) {
-            code = xmlToCode(fs.read(`/main.xml`));
-        } else if (file_list.indexOf("main.py") >= 0) {
-            code = fs.read(`/main.py`);
-        } else {
-            code = "";
-        }
-
-        console.log(code);
-
-        const currentBoard = boards.find(board => board.id === boardId);
-        if (!currentBoard) {
-            throw `Board not found: ${boardId}`;
-        }
-
-        isArduinoPlatform = !!currentBoard.isArduinoPlatform;
-
-        if (isArduinoPlatform) {
-            if (+localStorage.getItem("show-console-upload") !== -1) {
-                $("#arduino-console-dialog .title").text("Uploading...");
-                ShowDialog($("#arduino-console-dialog"));
-            }
-            arduinoConsoleTerm.clear();
-        }
-
         if (!isArduinoPlatform) {
             if (deviceMode === MODE_REAL_DEVICE) {
                 await realDeviceUploadFlow(code);
@@ -1219,13 +1008,13 @@ $("#upload-program").click(async function () {
             }
         } else {
             await arduino_upload(code);
+            // $("#upload-log-dialog .close-dialog").click();
         }
 
         timeDiff = (new Date()).getTime() - t0;
         console.log("Time:", timeDiff, "ms");
         NotifyS("Upload Successful");
         statusLog(`Upload successful with ${timeDiff} mS`);
-
         if (isArduinoPlatform) {
             $("#arduino-console-dialog .title").text("Upload Successful");
         }
@@ -1234,20 +1023,14 @@ $("#upload-program").click(async function () {
         NotifyE("Upload Fail !");
         statusLog(`Upload fail because ${e}`);
         console.warn(e);
-
         if (isArduinoPlatform) {
             ShowDialog($("#arduino-console-dialog")); // show upload dialog
             $("#arduino-console-dialog .title").text("Upload Fail");
         }
-    } finally {
-        uploadButton.removeClass("loading");
-        uploadButton.removeClass("disabled");
-        uploadButton.prop("disabled", false);
-
-        // Give serial / MSC reset flow a short cooldown before allowing next upload.
-        await sleep(800);
-        uploadProgramIsRunning = false;
     }
+
+
+    $("#upload-program").removeClass("loading");
 });
 
 async function writeSerial(text) {

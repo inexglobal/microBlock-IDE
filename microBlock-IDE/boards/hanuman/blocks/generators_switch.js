@@ -1,4 +1,4 @@
-Blockly.JavaScript['switch_is_press'] = function (block) {
+Blockly.JavaScript.forBlock['switch_is_press'] = function (block) {
     Blockly.JavaScript.definitions_['include']['Hanuman.h'] = '#include <Hanuman.h>';
 
     var dropdown_n = block.getFieldValue('n');
@@ -7,7 +7,7 @@ Blockly.JavaScript['switch_is_press'] = function (block) {
     return [code, Blockly.JavaScript.ORDER_NONE];
 };
 
-Blockly.JavaScript['switch_is_release'] = function (block) {
+Blockly.JavaScript.forBlock['switch_is_release'] = function (block) {
     Blockly.JavaScript.definitions_['include']['Hanuman.h'] = '#include <Hanuman.h>';
 
     var dropdown_n = block.getFieldValue('n');
@@ -16,7 +16,7 @@ Blockly.JavaScript['switch_is_release'] = function (block) {
     return [code, Blockly.JavaScript.ORDER_NONE];
 };
 
-Blockly.JavaScript['switch_get_value'] = function (block) {
+Blockly.JavaScript.forBlock['switch_get_value'] = function (block) {
     Blockly.JavaScript.definitions_['include']['Hanuman.h'] = '#include <Hanuman.h>';
 
     var dropdown_n = block.getFieldValue('n');
@@ -26,7 +26,7 @@ Blockly.JavaScript['switch_get_value'] = function (block) {
 };
 
 /*
-Blockly.JavaScript['switch_on_press'] = function(block) {
+Blockly.JavaScript.forBlock['switch_on_press'] = function(block) {
     Blockly.JavaScript.definitions_['import_switch'] = 'import switch';
 
     var dropdown_pin = block.getFieldValue('pin');
@@ -65,7 +65,7 @@ Blockly.JavaScript['switch_on_press'] = function(block) {
     return code;
 };
 
-Blockly.JavaScript['switch_on_release'] = function(block) {
+Blockly.JavaScript.forBlock['switch_on_release'] = function(block) {
     Blockly.JavaScript.definitions_['import_switch'] = 'import switch';
 
     var dropdown_pin = block.getFieldValue('pin');
@@ -104,7 +104,7 @@ Blockly.JavaScript['switch_on_release'] = function(block) {
     return code;
 };
 
-Blockly.JavaScript['switch_on_pressed'] = function(block) {
+Blockly.JavaScript.forBlock['switch_on_pressed'] = function(block) {
     Blockly.JavaScript.definitions_['import_switch'] = 'import switch';
 
     var dropdown_pin = block.getFieldValue('pin');

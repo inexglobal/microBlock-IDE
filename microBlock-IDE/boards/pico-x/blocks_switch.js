@@ -7,14 +7,8 @@ Blockly.defineBlocksWithJsonArray([
       "type": "field_dropdown",
       "name": "n",
       "options": [
-        [
-          "SW1",
-          "SW1"
-        ],
-        [
-          "SW2",
-          "SW2"
-        ]
+        ["SW1", "SW1"],
+        ["SW2", "SW2"]
       ]
     }
   ],
@@ -31,14 +25,8 @@ Blockly.defineBlocksWithJsonArray([
       "type": "field_dropdown",
       "name": "n",
       "options": [
-        [
-          "SW1",
-          "SW1"
-        ],
-        [
-          "SW2",
-          "SW2"
-        ]
+        ["SW1", "SW1"],
+        ["SW2", "SW2"]
       ]
     }
   ],
@@ -55,14 +43,8 @@ Blockly.defineBlocksWithJsonArray([
       "type": "field_dropdown",
       "name": "n",
       "options": [
-        [
-          "SW1",
-          "SW1"
-        ],
-        [
-          "SW2",
-          "SW2"
-        ]
+        ["SW1", "SW1"],
+        ["SW2", "SW2"]
       ]
     }
   ],
@@ -79,19 +61,11 @@ Blockly.defineBlocksWithJsonArray([
       "type": "field_dropdown",
       "name": "pin",
       "options": [
-        [
-          "SW1",
-          "SW1"
-        ],
-        [
-          "SW2",
-          "SW2"
-        ]
+        ["SW1", "SW1"],
+        ["SW2", "SW2"]
       ]
     },
-    {
-      "type": "input_dummy"
-    },
+    {"type": "input_dummy"},
     {
       "type": "input_statement",
       "name": "callback"
@@ -111,19 +85,11 @@ Blockly.defineBlocksWithJsonArray([
       "type": "field_dropdown",
       "name": "pin",
       "options": [
-        [
-          "SW1",
-          "SW1"
-        ],
-        [
-          "SW2",
-          "SW2"
-        ]
+        ["SW1", "SW1"],
+        ["SW2", "SW2"]
       ]
     },
-    {
-      "type": "input_dummy"
-    },
+    {"type": "input_dummy"},
     {
       "type": "input_statement",
       "name": "callback"
@@ -143,23 +109,12 @@ Blockly.defineBlocksWithJsonArray([
       "type": "field_dropdown",
       "name": "pin",
       "options": [
-        [
-          "SW1",
-          "SW1"
-        ],
-        [
-          "SW2",
-          "SW2"
-        ],
-        [
-          "SW1+SW2",
-          "SW12"
-        ]
+        ["SW1", "SW1"],
+        ["SW2", "SW2"],
+        ["SW1+SW2", "SW12"]
       ]
     },
-    {
-      "type": "input_dummy"
-    },
+    {"type": "input_dummy"},
     {
       "type": "input_statement",
       "name": "callback"
@@ -170,5 +125,5 @@ Blockly.defineBlocksWithJsonArray([
   "colour": "#E67E22",
   "tooltip": "",
   "helpUrl": ""
-},
+}
 ]);

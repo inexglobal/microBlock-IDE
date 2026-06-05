@@ -51,7 +51,7 @@ addBoard({
 
         "blocks/generators_motor.js",
         "../ipst-wifi/blocks/generators_display.js",
-        "../kidbright32/blocks/generators_switch.js",
+        "blocks/generators_switch.js",
         "../kidbright32/blocks/generators_servo.js",
         "blocks/generators_pin.js",
         "blocks/generators_advanced.js",

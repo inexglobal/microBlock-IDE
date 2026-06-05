@@ -1,4 +1,4 @@
-Blockly.JavaScript['motor1'] = function (block) {
+Blockly.JavaScript.forBlock['motor1'] = function (block) {
     Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
     var dropdown_n = block.getFieldValue('n');
@@ -8,7 +8,7 @@ Blockly.JavaScript['motor1'] = function (block) {
     return code;
 };
 
-Blockly.JavaScript['motor2'] = function (block) {
+Blockly.JavaScript.forBlock['motor2'] = function (block) {
     Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
     var value_speed1 = Blockly.JavaScript.valueToCode(block, 'speed1', Blockly.JavaScript.ORDER_ATOMIC);
@@ -20,7 +20,7 @@ Blockly.JavaScript['motor2'] = function (block) {
     return code;
 };
 
-Blockly.JavaScript['motor_move'] = function(block) {
+Blockly.JavaScript.forBlock['motor_move'] = function(block) {
     Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
   
     var dropdown_move = block.getFieldValue('move');
@@ -30,7 +30,7 @@ Blockly.JavaScript['motor_move'] = function(block) {
     return code;
 };
 
-Blockly.JavaScript['motor_move2'] = function(block) {
+Blockly.JavaScript.forBlock['motor_move2'] = function(block) {
     Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
   
     var dropdown_move = block.getFieldValue('move');
@@ -41,7 +41,7 @@ Blockly.JavaScript['motor_move2'] = function(block) {
     return code;
 };
 
-Blockly.JavaScript['motor_move_4wd'] = function(block) {
+Blockly.JavaScript.forBlock['motor_move_4wd'] = function(block) {
     Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
   
     var dropdown_move = block.getFieldValue('move');
@@ -51,7 +51,7 @@ Blockly.JavaScript['motor_move_4wd'] = function(block) {
     return code;
 };
 
-Blockly.JavaScript['motor_move2_4wd'] = function(block) {
+Blockly.JavaScript.forBlock['motor_move2_4wd'] = function(block) {
     Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
   
     var dropdown_move = block.getFieldValue('move');
@@ -62,7 +62,7 @@ Blockly.JavaScript['motor_move2_4wd'] = function(block) {
     return code;
 };
 
-Blockly.JavaScript['turn'] = function (block) {
+Blockly.JavaScript.forBlock['turn'] = function (block) {
     Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
     var dropdown_dir = block.getFieldValue('dir');
@@ -72,7 +72,7 @@ Blockly.JavaScript['turn'] = function (block) {
     return code;
 };
 
-Blockly.JavaScript['spin'] = function (block) {
+Blockly.JavaScript.forBlock['spin'] = function (block) {
     Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
     var dropdown_dir = block.getFieldValue('dir');
@@ -82,7 +82,7 @@ Blockly.JavaScript['spin'] = function (block) {
     return code;
 };
 
-Blockly.JavaScript['motor_stop'] = function (block) {
+Blockly.JavaScript.forBlock['motor_stop'] = function (block) {
     Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
     var dropdown_n = block.getFieldValue('n');

@@ -1,4 +1,4 @@
-Blockly.JavaScript['buzzer_tone'] = function(block) {
+Blockly.JavaScript.forBlock['buzzer_tone'] = function(block) {
     Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
     var value_freq = Blockly.JavaScript.valueToCode(block, 'freq', Blockly.JavaScript.ORDER_ATOMIC);
@@ -8,7 +8,7 @@ Blockly.JavaScript['buzzer_tone'] = function(block) {
     return code;
 };
 
-Blockly.JavaScript['buzzer_notes'] = function(block) {
+Blockly.JavaScript.forBlock['buzzer_notes'] = function(block) {
     Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
     var value_notes = Blockly.JavaScript.valueToCode(block, 'notes', Blockly.JavaScript.ORDER_ATOMIC);
@@ -69,7 +69,7 @@ Blockly.JavaScript['buzzer_notes'] = function(block) {
 };
 
 /*
-Blockly.JavaScript['buzzer_volume'] = function(block) {
+Blockly.JavaScript.forBlock['buzzer_volume'] = function(block) {
     Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
     var value_level = Blockly.JavaScript.valueToCode(block, 'level', Blockly.JavaScript.ORDER_ATOMIC);
@@ -78,7 +78,7 @@ Blockly.JavaScript['buzzer_volume'] = function(block) {
 };
 */
 
-Blockly.JavaScript['make_note'] = function(block) {
+Blockly.JavaScript.forBlock['make_note'] = function(block) {
     var text_notes = block.getFieldValue('notes');
     var code = `'${text_notes}'`;
     return [code, Blockly.JavaScript.ORDER_NONE];

@@ -4,14 +4,14 @@ let defined_lib = () => {
     Blockly.JavaScript.definitions_['define']['matrix'] = 'ArduinoLEDMatrix matrix;';
 };
 
-Blockly.JavaScript['display_begin'] = function(block) {
+Blockly.JavaScript.forBlock['display_begin'] = function(block) {
     defined_lib();
 
     var code = `matrix.begin();\n`;
     return code;
 };
 
-Blockly.JavaScript['display_custom'] = function(block) {
+Blockly.JavaScript.forBlock['display_custom'] = function(block) {
     defined_lib();
 
     const code_frame = block.getFieldValue('value').split("\\x").filter(a => a.length != 0).map(a => a.toUpperCase());
@@ -23,7 +23,7 @@ Blockly.JavaScript['display_custom'] = function(block) {
     return code;
 };
 
-Blockly.JavaScript['display_show'] = function(block) {
+Blockly.JavaScript.forBlock['display_show'] = function(block) {
     defined_lib();
 
     var value_value = Blockly.JavaScript.valueToCode(block, 'value', Blockly.JavaScript.ORDER_ATOMIC);
@@ -38,7 +38,7 @@ matrix.endDraw();
     return code;
 };
 
-Blockly.JavaScript['display_scroll'] = function(block) {
+Blockly.JavaScript.forBlock['display_scroll'] = function(block) {
     defined_lib();
 
     var value_value = Blockly.JavaScript.valueToCode(block, 'value', Blockly.JavaScript.ORDER_ATOMIC);
@@ -54,7 +54,7 @@ matrix.endDraw();
     return code;
 };
 
-Blockly.JavaScript['display_show_number'] = function(block) {
+Blockly.JavaScript.forBlock['display_show_number'] = function(block) {
     defined_lib();
 
     var value_value = Blockly.JavaScript.valueToCode(block, 'value', Blockly.JavaScript.ORDER_ATOMIC);
@@ -69,7 +69,7 @@ matrix.endDraw();
     return code;
 };
 
-Blockly.JavaScript['display_left_show'] = function(block) {
+Blockly.JavaScript.forBlock['display_left_show'] = function(block) {
     defined_lib();
 
     var value_value = Blockly.JavaScript.valueToCode(block, 'value', Blockly.JavaScript.ORDER_ATOMIC);
@@ -77,7 +77,7 @@ Blockly.JavaScript['display_left_show'] = function(block) {
     return code;
 };
 
-Blockly.JavaScript['display_right_show'] = function(block) {
+Blockly.JavaScript.forBlock['display_right_show'] = function(block) {
     defined_lib();
 
     var value_value = Blockly.JavaScript.valueToCode(block, 'value', Blockly.JavaScript.ORDER_ATOMIC);
@@ -85,7 +85,7 @@ Blockly.JavaScript['display_right_show'] = function(block) {
     return code;
 };
 
-Blockly.JavaScript['display_plot'] = function(block) {
+Blockly.JavaScript.forBlock['display_plot'] = function(block) {
     defined_lib();
 
     var value_value = Blockly.JavaScript.valueToCode(block, 'value', Blockly.JavaScript.ORDER_ATOMIC);
@@ -93,7 +93,7 @@ Blockly.JavaScript['display_plot'] = function(block) {
     return code;
 };
 
-Blockly.JavaScript['display_clear'] = function(block) {
+Blockly.JavaScript.forBlock['display_clear'] = function(block) {
     defined_lib();
 
     var code = `{
@@ -103,14 +103,14 @@ Blockly.JavaScript['display_clear'] = function(block) {
     return code;
 };
 
-Blockly.JavaScript['display_begin_draw'] = function(block) {
+Blockly.JavaScript.forBlock['display_begin_draw'] = function(block) {
     defined_lib();
 
     var code = `matrix.beginDraw();\n`;
     return code;
 };
 
-Blockly.JavaScript['display_dot_show'] = function(block) {
+Blockly.JavaScript.forBlock['display_dot_show'] = function(block) {
     defined_lib();
   
     var value_x = Blockly.JavaScript.valueToCode(block, 'x', Blockly.JavaScript.ORDER_ATOMIC);
@@ -120,7 +120,7 @@ Blockly.JavaScript['display_dot_show'] = function(block) {
     return code;
 };
 
-Blockly.JavaScript['display_dot_hide'] = function(block) {
+Blockly.JavaScript.forBlock['display_dot_hide'] = function(block) {
     defined_lib();
   
     var value_x = Blockly.JavaScript.valueToCode(block, 'x', Blockly.JavaScript.ORDER_ATOMIC);
@@ -130,7 +130,7 @@ Blockly.JavaScript['display_dot_hide'] = function(block) {
     return code;
 };
 
-Blockly.JavaScript['display_end_draw'] = function(block) {
+Blockly.JavaScript.forBlock['display_end_draw'] = function(block) {
     defined_lib();
 
     var code = `matrix.endDraw();\n`;

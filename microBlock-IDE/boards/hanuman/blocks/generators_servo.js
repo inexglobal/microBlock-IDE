@@ -1,4 +1,4 @@
-Blockly.JavaScript['external_servo'] = function (block) {
+Blockly.JavaScript.forBlock['external_servo'] = function (block) {
     Blockly.JavaScript.definitions_['include']['Hanuman.h'] = '#include <Hanuman.h>';
 
     var dropdown_ch = block.getFieldValue('ch');

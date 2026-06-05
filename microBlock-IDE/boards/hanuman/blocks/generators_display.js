@@ -1,4 +1,4 @@
-Blockly.JavaScript['display_draw_text'] = function(block) {
+Blockly.JavaScript.forBlock['display_draw_text'] = function(block) {
   Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
   
   var value_text = Blockly.JavaScript.valueToCode(block, 'text', Blockly.JavaScript.ORDER_ATOMIC);
@@ -9,7 +9,7 @@ Blockly.JavaScript['display_draw_text'] = function(block) {
   return code;
 };
 
-Blockly.JavaScript['display_draw_line'] = function(block) {
+Blockly.JavaScript.forBlock['display_draw_line'] = function(block) {
   Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
   var value_x1 = Blockly.JavaScript.valueToCode(block, 'x1', Blockly.JavaScript.ORDER_ATOMIC);
@@ -21,7 +21,7 @@ Blockly.JavaScript['display_draw_line'] = function(block) {
   return code;
 };
 
-Blockly.JavaScript['display_draw_rect'] = function(block) {
+Blockly.JavaScript.forBlock['display_draw_rect'] = function(block) {
   Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
   var value_x = Blockly.JavaScript.valueToCode(block, 'x', Blockly.JavaScript.ORDER_ATOMIC);
@@ -34,28 +34,28 @@ Blockly.JavaScript['display_draw_rect'] = function(block) {
   return code;
 };
 
-Blockly.JavaScript['display_fill'] = function(block) {
+Blockly.JavaScript.forBlock['display_fill'] = function(block) {
   Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
   var code = 'oled.fillScreen(WHITE);\n';
   return code;
 };
 
-Blockly.JavaScript['display_clear'] = function(block) {
+Blockly.JavaScript.forBlock['display_clear'] = function(block) {
   Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
   var code = 'oled.fillScreen(0);\n';
   return code;
 };
 
-Blockly.JavaScript['display_show'] = function(block) {
+Blockly.JavaScript.forBlock['display_show'] = function(block) {
   Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
   
   var code = 'oled.show();\n';
   return code;
 };
 
-Blockly.JavaScript['display_draw_bitmap'] = function(block) {
+Blockly.JavaScript.forBlock['display_draw_bitmap'] = function(block) {
   Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
   var bitmap_image = block.getFieldValue('image');
