@@ -119,10 +119,10 @@ if (isElectron) {
                 {
                     label: 'Update Firmware',
                     click: () => {
-                        if (typeof globalThis.firewareUpgradeFlow === "function") {
-                            globalThis.firewareUpgradeFlow();
+                        if (typeof globalThis.firmwareUpgradeFlow === "function") {
+                            globalThis.firmwareUpgradeFlow();
                         } else {
-                            console.error("firewareUpgradeFlow is not available on globalThis");
+                            console.error("firmwareUpgradeFlow is not available on globalThis");
                         }
                     }
                 }

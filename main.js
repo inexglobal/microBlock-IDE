@@ -4,6 +4,10 @@ var ipcMain = require('electron').ipcMain;
 
 app.allowRendererProcessReuse = false;
 
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('no-sandbox')
+}
+
 global.sharedObj = {
     argv: process.argv,
     mainWin: null,

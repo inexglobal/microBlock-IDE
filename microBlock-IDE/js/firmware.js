@@ -1,10 +1,10 @@
 var firmwareUpdateMode = false;
 
 (() => {
-    console.log("[fireware.js] loaded");
+    console.log("[firmware.js] loaded");
 
     let uf2MountPath = "";
-    let windowFirewareUpdate = null;
+    let windowFirmwareUpdate = null;
     let rp2DriveCheckTimer = null;
     let rp2DrivePollingActive = false;
     let rp2DrivePollingToken = 0;
@@ -316,12 +316,12 @@ var firmwareUpdateMode = false;
         });
     };
 
-    async function firewareUpgradeFlow() {
-        console.log("[fireware.js] firewareUpgradeFlow called");
+    async function firmwareUpgradeFlow() {
+        console.log("[firmware.js] firmwareUpgradeFlow called");
 
         let board = boards.find(board => board.id === boardId);
         if (!board) {
-            console.error("[fireware.js] board not found:", boardId);
+            console.error("[firmware.js] board not found:", boardId);
             return;
         }
 
@@ -335,7 +335,7 @@ var firmwareUpdateMode = false;
             const w = 600, h = 460;
             const y = (window.top.outerHeight / 2) + window.top.screenY - (h / 2);
             const x = (window.top.outerWidth / 2) + window.top.screenX - (w / 2);
-            windowFirewareUpdate = window.open(
+            windowFirmwareUpdate = window.open(
                 "/firmware.html?board=" + encodeURI(boardId) + "&firmware=" + encodeURI(JSON.stringify(board.firmware)),
                 "Firmware Update",
                 `width=600,height=500,top=${y},left=${x}`
@@ -362,10 +362,10 @@ var firmwareUpdateMode = false;
         $("#firmware-upgrade-dialog").show();
     }
 
-    window.firewareUpgradeFlow = firewareUpgradeFlow;
-    globalThis.firewareUpgradeFlow = firewareUpgradeFlow;
+    window.firmwareUpgradeFlow = firmwareUpgradeFlow;
+    globalThis.firmwareUpgradeFlow = firmwareUpgradeFlow;
 
-    $("#install-firmware-button").off("click.fireware").on("click.fireware", async () => {
+    $("#install-firmware-button").off("click.firmware").on("click.firmware", async () => {
         $("#firmware-upgrade-dialog article.todo").hide();
         resetFirmwareProgress();
         $("#firmware-upgrade-dialog article.doing").show();
@@ -631,18 +631,18 @@ var firmwareUpdateMode = false;
         }
     });
 
-    $("#firmware-upgrade-dialog .upload-btn").off("click.fireware").on("click.fireware", () => {
+    $("#firmware-upgrade-dialog .upload-btn").off("click.firmware").on("click.firmware", () => {
         $("#upload-program").click();
         $("#firmware-upgrade-dialog .close-btn").click();
     });
 
-    $("#firmware-upgrade-dialog .close-btn").off("click.fireware").on("click.fireware", () => {
+    $("#firmware-upgrade-dialog .close-btn").off("click.firmware").on("click.firmware", () => {
         stopRP2DrivePolling();
         $("#firmware-upgrade-dialog").hide();
     });
 
     let skipFirmwareUpgrade = false;
-    $("#continue-upload").off("click.fireware").on("click.fireware", () => {
+    $("#continue-upload").off("click.firmware").on("click.firmware", () => {
         skipFirmwareUpgrade = true;
         $("#firmware-upgrade-dialog .close-btn").click();
         $("#upload-program").click();
