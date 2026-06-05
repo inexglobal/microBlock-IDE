@@ -61,9 +61,9 @@ addBoard({
     firmware: [
         {
             name: "μPython for Pico-X v1.28.0",
-            path: "firmware/PICO_X-20260225-v1.28.0.uf2",
+            path: "firmware/PICO_X-20260604-v1.28.0.uf2",
             version: "v1.28.0",
-            date: "2026-02-25",
+            date: "2026-06-04",
             board: "Pico-X",
             cpu: "RP2350"
         },
