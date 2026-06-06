@@ -2,7 +2,7 @@
 
 Offline desktop version of the microBlock IDE.
 
-**Current Version:** V3.1.1  
+**Current Version:** V3.1.2  
 **Compatible OS:** Windows 10 or later, macOS (Apple Silicon), Linux
 
 We recommend using **Node.js v12.22.12** via `nvm` to develop this repository.
