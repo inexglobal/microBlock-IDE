@@ -18,12 +18,21 @@ iBITPythonGeneratorRegistry['ibit_uturn'] = function (block) {
     return `iBIT.uturn("${direction}", ${speed})\n`;
 };
 
+iBITPythonGeneratorRegistry['ibit_set_line_sensor_ports'] = function (block) {
+    Blockly.Python.definitions_['import_iBIT'] = 'import iBIT';
+
+    var leftPort = block.getFieldValue('left_port') || '1';
+    var rightPort = block.getFieldValue('right_port') || '2';
+
+    return `iBIT.set_line_sensor_ports(${leftPort}, ${rightPort})\n`;
+};
+
 iBITPythonGeneratorRegistry['ibit_set_ref_l'] = function (block) {
     Blockly.Python.definitions_['import_iBIT'] = 'import iBIT';
 
     var value = Blockly.Python.valueToCode(block, 'value', Blockly.Python.ORDER_ATOMIC) || '0';
 
-    return `iBIT.set_ref_l(${value})\n`;
+    return `iBIT.set_threshold_left(${value})\n`;
 };
 
 iBITPythonGeneratorRegistry['ibit_set_ref_r'] = function (block) {
@@ -31,7 +40,7 @@ iBITPythonGeneratorRegistry['ibit_set_ref_r'] = function (block) {
 
     var value = Blockly.Python.valueToCode(block, 'value', Blockly.Python.ORDER_ATOMIC) || '0';
 
-    return `iBIT.set_ref_r(${value})\n`;
+    return `iBIT.set_threshold_right(${value})\n`;
 };
 
 iBITPythonGeneratorRegistry['ibit_gripper_enable'] = function (block) {
@@ -73,22 +82,30 @@ iBITPythonGeneratorRegistry['ibit_gripper_home'] = function () {
     return 'iBIT.GripperX.home()\n';
 };
 
+iBITPythonGeneratorRegistry['ibit_gripper_stop'] = function () {
+    Blockly.Python.definitions_['import_iBIT'] = 'import iBIT';
+
+    return 'iBIT.GripperX.stop()\n';
+};
+
 iBITPythonGeneratorRegistry['ibit_intersection'] = function (block) {
     Blockly.Python.definitions_['import_iBIT'] = 'import iBIT';
 
     var action = block.getFieldValue('action');
     var seconds = Blockly.Python.valueToCode(block, 'seconds', Blockly.Python.ORDER_ATOMIC) || '0.5';
-    var speed = Blockly.Python.valueToCode(block, 'speed', Blockly.Python.ORDER_ATOMIC) || '100';
+    var speedLeft = Blockly.Python.valueToCode(block, 'speed', Blockly.Python.ORDER_ATOMIC) || '100';
+    var speedRight = Blockly.Python.valueToCode(block, 'speed_right', Blockly.Python.ORDER_ATOMIC) || speedLeft;
 
-    return `iBIT.intersection("${action}", ${seconds}, ${speed})\n`;
+    return `iBIT.intersection("${action}", ${seconds}, ${speedLeft}, ${speedRight})\n`;
 };
 
 iBITPythonGeneratorRegistry['ibit_intersection_stop'] = function (block) {
     Blockly.Python.definitions_['import_iBIT'] = 'import iBIT';
 
-    var speed = Blockly.Python.valueToCode(block, 'speed', Blockly.Python.ORDER_ATOMIC) || '100';
+    var speedLeft = Blockly.Python.valueToCode(block, 'speed', Blockly.Python.ORDER_ATOMIC) || '100';
+    var speedRight = Blockly.Python.valueToCode(block, 'speed_right', Blockly.Python.ORDER_ATOMIC) || speedLeft;
 
-    return `iBIT.intersection_stop(${speed})\n`;
+    return `iBIT.intersection_stop(${speedLeft}, ${speedRight})\n`;
 };
 
 iBITPythonGeneratorRegistry['ibit_set_intersection_forward_time'] = function (block) {

@@ -28,10 +28,10 @@ Blockly.defineBlocksWithJsonArray([
                 "options": [
                     ["Forward", "FORWARD"],
                     ["Backward", "BACKWARD"],
-                    ["Turn left", "TURN_LEFT"],
-                    ["Turn right", "TURN_RIGHT"],
-                    ["Spin left", "SPIN_LEFT"],
-                    ["Spin right", "SPIN_RIGHT"]
+                    ["Turn Left", "TURN_LEFT"],
+                    ["Turn Right", "TURN_RIGHT"],
+                    ["Spin Left", "SPIN_LEFT"],
+                    ["Spin Right", "SPIN_RIGHT"]
                 ]
             },
             {
@@ -49,7 +49,7 @@ Blockly.defineBlocksWithJsonArray([
     },
     {
         "type": "ibit_uturn",
-        "message0": "U-turn %1 Speed %2",
+        "message0": "U-Turn (Line Sensor) %1 Speed %2",
         "args0": [
             {
                 "type": "field_dropdown",
@@ -73,8 +73,48 @@ Blockly.defineBlocksWithJsonArray([
         "helpUrl": ""
     },
     {
+        "type": "ibit_set_line_sensor_ports",
+        "message0": "Set Line Sensor Ports Left %1 Right %2",
+        "args0": [
+            {
+                "type": "field_dropdown",
+                "name": "left_port",
+                "options": [
+                    ["ADC0", "0"],
+                    ["ADC1", "1"],
+                    ["ADC2", "2"],
+                    ["ADC3", "3"],
+                    ["ADC4", "4"],
+                    ["ADC5", "5"],
+                    ["ADC6", "6"],
+                    ["ADC7", "7"]
+                ]
+            },
+            {
+                "type": "field_dropdown",
+                "name": "right_port",
+                "options": [
+                    ["ADC0", "0"],
+                    ["ADC1", "1"],
+                    ["ADC2", "2"],
+                    ["ADC3", "3"],
+                    ["ADC4", "4"],
+                    ["ADC5", "5"],
+                    ["ADC6", "6"],
+                    ["ADC7", "7"]
+                ]
+            }
+        ],
+        "inputsInline": true,
+        "previousStatement": null,
+        "nextStatement": null,
+        "colour": "#3498DB",
+        "tooltip": "Set the ADC ports used by every line-sensor command. The defaults are ADC1 for Left and ADC2 for Right.",
+        "helpUrl": ""
+    },
+    {
         "type": "ibit_set_ref_l",
-        "message0": "Set refL to %1",
+        "message0": "Set Threshold Left to %1",
         "args0": [
             {
                 "type": "input_value",
@@ -86,12 +126,12 @@ Blockly.defineBlocksWithJsonArray([
         "previousStatement": null,
         "nextStatement": null,
         "colour": "#3498DB",
-        "tooltip": "Set the black-line reference value for the left ZX-03 on ADC0.",
+        "tooltip": "Set the black-line threshold for the left ZX-03 sensor.",
         "helpUrl": ""
     },
     {
         "type": "ibit_set_ref_r",
-        "message0": "Set refR to %1",
+        "message0": "Set Threshold Right to %1",
         "args0": [
             {
                 "type": "input_value",
@@ -103,7 +143,7 @@ Blockly.defineBlocksWithJsonArray([
         "previousStatement": null,
         "nextStatement": null,
         "colour": "#3498DB",
-        "tooltip": "Set the black-line reference value for the right ZX-03 on ADC1.",
+        "tooltip": "Set the black-line threshold for the right ZX-03 sensor.",
         "helpUrl": ""
     },
     {
@@ -128,7 +168,7 @@ Blockly.defineBlocksWithJsonArray([
     },
     {
         "type": "ibit_gripper_set_ports",
-        "message0": "Set Gripper-X ports %1",
+        "message0": "Set Gripper-X Ports %1",
         "args0": [
             {
                 "type": "field_dropdown",
@@ -181,8 +221,8 @@ Blockly.defineBlocksWithJsonArray([
                 "type": "field_dropdown",
                 "name": "action",
                 "options": [
-                    ["Pick up", "PICK_UP"],
-                    ["Place down", "PLACE_DOWN"],
+                    ["Pick Up", "PICK_UP"],
+                    ["Place Down", "PLACE_DOWN"],
                     ["Grab", "GRAB"],
                     ["Release", "RELEASE"],
                     ["Up", "UP"],
@@ -208,16 +248,26 @@ Blockly.defineBlocksWithJsonArray([
         "helpUrl": ""
     },
     {
+        "type": "ibit_gripper_stop",
+        "message0": "Gripper-X Stop",
+        "inputsInline": true,
+        "previousStatement": null,
+        "nextStatement": null,
+        "colour": "#3498DB",
+        "tooltip": "Stop the PWM pulses on both Gripper-X servo ports.",
+        "helpUrl": ""
+    },
+    {
         "type": "ibit_intersection",
-        "message0": "Intersection %1 Forward %2 Seconds Speed %3",
+        "message0": "Intersection %1 Forward %2 Seconds Speed L %3 Speed R %4",
         "args0": [
             {
                 "type": "field_dropdown",
                 "name": "action",
                 "options": [
                     ["Cross", "CROSS"],
-                    ["Turn left", "TURN_LEFT"],
-                    ["Turn right", "TURN_RIGHT"]
+                    ["Turn Left", "TURN_LEFT"],
+                    ["Turn Right", "TURN_RIGHT"]
                 ]
             },
             {
@@ -229,22 +279,10 @@ Blockly.defineBlocksWithJsonArray([
                 "type": "input_value",
                 "name": "speed",
                 "check": "Number"
-            }
-        ],
-        "inputsInline": true,
-        "previousStatement": null,
-        "nextStatement": null,
-        "colour": "#3498DB",
-        "tooltip": "Wait for an intersection, move forward for the selected time and speed, then cross or turn.",
-        "helpUrl": ""
-    },
-    {
-        "type": "ibit_intersection_stop",
-        "message0": "Intersection stop Speed %1",
-        "args0": [
+            },
             {
                 "type": "input_value",
-                "name": "speed",
+                "name": "speed_right",
                 "check": "Number"
             }
         ],
@@ -252,12 +290,34 @@ Blockly.defineBlocksWithJsonArray([
         "previousStatement": null,
         "nextStatement": null,
         "colour": "#3498DB",
-        "tooltip": "Move forward at the selected speed until both ZX-03 sensors find an intersection, then stop immediately.",
+        "tooltip": "Follow the line with separate left and right speeds, then move forward for the selected time and cross or turn.",
+        "helpUrl": ""
+    },
+    {
+        "type": "ibit_intersection_stop",
+        "message0": "Intersection Stop Speed L %1 Speed R %2",
+        "args0": [
+            {
+                "type": "input_value",
+                "name": "speed",
+                "check": "Number"
+            },
+            {
+                "type": "input_value",
+                "name": "speed_right",
+                "check": "Number"
+            }
+        ],
+        "inputsInline": true,
+        "previousStatement": null,
+        "nextStatement": null,
+        "colour": "#3498DB",
+        "tooltip": "Follow the line with separate left and right speeds until both ZX-03 sensors find an intersection, then stop immediately.",
         "helpUrl": ""
     },
     {
         "type": "ibit_set_intersection_forward_time",
-        "message0": "Set intersection forward time %1 seconds",
+        "message0": "Set Intersection Forward Time %1 Seconds",
         "args0": [
             {
                 "type": "input_value",
@@ -274,7 +334,7 @@ Blockly.defineBlocksWithJsonArray([
     },
     {
         "type": "ibit_motor1",
-        "message0": "setMotor %1 Direction %2 Speed %3",
+        "message0": "Set Motor %1 Direction %2 Speed %3",
         "args0": [
             {
                 "type": "field_dropdown",
@@ -307,7 +367,7 @@ Blockly.defineBlocksWithJsonArray([
     },
     {
         "type": "ibit_motor2",
-        "message0": "Motor2 %1 speed1 %2 speed2 %3",
+        "message0": "Motor 2 %1 Speed L %2 Speed R %3",
         "args0": [
             {
                 "type": "field_dropdown",
@@ -337,7 +397,7 @@ Blockly.defineBlocksWithJsonArray([
     },
     {
         "type": "ibit_turn",
-        "message0": "Turn %1 speed %2",
+        "message0": "Turn %1 Speed %2",
         "args0": [
             {
                 "type": "field_dropdown",
@@ -362,7 +422,7 @@ Blockly.defineBlocksWithJsonArray([
     },
     {
         "type": "ibit_spin",
-        "message0": "Spin %1 speed %2",
+        "message0": "Spin %1 Speed %2",
         "args0": [
             {
                 "type": "field_dropdown",
@@ -442,7 +502,7 @@ Blockly.defineBlocksWithJsonArray([
     },
     {
         "type": "ibit_analog_read",
-        "message0": "Analog read pin %1",
+        "message0": "Analog Read Pin %1",
         "args0": [
             {
                 "type": "field_dropdown",
