@@ -114,7 +114,7 @@ let loadBoard = async () => {
         }
         if (script.status === 200) {
             try {
-                eval(await script.text());
+                await runJavaScript(await script.text(), `${rootPath}/boards/${board.id}/${fPath}`);
             } catch (e) {
                 console.warn(e);
             }

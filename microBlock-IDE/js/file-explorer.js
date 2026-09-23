@@ -57,7 +57,7 @@ const updateExtensionSelectEventHandle = () => {
     });
 }
 
-$("#file-explorer-open-btn").on("click", () => {
+$("#file-explorer-open-btn").on("click", async () => {
     $("#file-explorer-dialog").addClass("active");
 
     // Project file list
@@ -82,13 +82,22 @@ $("#file-explorer-open-btn").on("click", () => {
 
     // Extension list
     list_code = "";
-    let extension_installed_list = fs.ls("/extension");
+    const project_extension_list = fs.ls("/extension");
+    let extension_installed_list = [...project_extension_list];
     if (isElectron) {
         extension_installed_list = extension_installed_list.concat(nodeFS.ls(sharedObj.extensionDir));
     }
     for (const extension_id of extension_installed_list) {
-        let extension = fs.read(`/extension/${extension_id}/extension.js`);
-        extension = eval(extension);
+        let extensionPath;
+        let extensionSource;
+        if (project_extension_list.includes(extension_id)) {
+            extensionPath = `/extension/${extension_id}/extension.js`;
+            extensionSource = fs.read(extensionPath);
+        } else {
+            extensionPath = `${sharedObj.extensionDir}/${extension_id}/extension.js`;
+            extensionSource = (await readFileAsync(extensionPath)).toString();
+        }
+        const extension = await evaluateJavaScriptExpression(extensionSource, extensionPath);
         list_code += `
             <li data-extension-id="${extension_id}">
                 <i class="fas fa-cubes"></i>

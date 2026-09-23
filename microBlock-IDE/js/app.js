@@ -45,8 +45,8 @@ let updateBlockCategory = async () => {
     // Extenstion
     extenstionTree = [];
     for (const extensionId of fs.ls("/extension")) {
-        let extension = fs.read(`/extension/${extensionId}/extension.js`);
-        extension = eval(extension);
+        const extensionPath = `/extension/${extensionId}/extension.js`;
+        const extension = await evaluateJavaScriptExpression(fs.read(extensionPath), extensionPath);
         if (board?.isArduinoPlatform && (!extension?.supportArduinoPlatform)) { // Skip if select board arduino but extension not support arduino
             continue;
         }
@@ -56,11 +56,12 @@ let updateBlockCategory = async () => {
     if (isElectron) {
         let extensionDir = sharedObj.extensionDir;
         for (const extensionId of nodeFS.ls(extensionDir)) {
-            let extension = await readFileAsync(`${extensionDir}/${extensionId}/extension.js`);
-            extension = extension.toString();
-            extension = eval(extension);
+            const extensionPath = `${extensionDir}/${extensionId}/extension.js`;
+            const extensionSource = (await readFileAsync(extensionPath)).toString();
+            const extension = await evaluateJavaScriptExpression(extensionSource, extensionPath);
             extenstionTree.push(extension);
-            categoryIconList.push(`${extensionDir}/${extensionId}/${extension.icon}`);
+            const iconPath = path.join(extensionDir, extensionId, extension.icon);
+            categoryIconList.push(await readFileAsDataURL(iconPath));
         }
     }
 
@@ -290,7 +291,7 @@ const updataWorkspaceAndCategoryFromvFS = async (disable_load_fs) => {
             if (file.endsWith(".js")) {
                 let jsContent = fs.read(`${extensionLocalPath}/blocks/${file}`);
                 try {
-                    eval(jsContent);
+                    await runJavaScript(jsContent, `${extensionLocalPath}/blocks/${file}`);
                 } catch (e) {
                     NotifyE("Script run error: " + e.toString());
                     console.error(e);
@@ -312,7 +313,7 @@ const updataWorkspaceAndCategoryFromvFS = async (disable_load_fs) => {
                     let jsContent = await readFileAsync(file);
                     jsContent = jsContent.toString();
                     try {
-                        eval(jsContent);
+                        await runJavaScript(jsContent, file);
                     } catch (e) {
                         NotifyE("Script run error: " + e.toString());
                         console.error(e);

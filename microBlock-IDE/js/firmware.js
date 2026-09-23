@@ -56,6 +56,50 @@ var firmwareUpdateMode = false;
         }
     };
 
+    const closeSerialPort = (port) => new Promise((resolve, reject) => {
+        if (!port || !port.isOpen) {
+            resolve();
+            return;
+        }
+
+        port.close((error) => error ? reject(error) : resolve());
+    });
+
+    const prepareBundledExecutable = (bundledPath) => {
+        const platform = os.platform();
+        if (platform !== "linux" && platform !== "darwin") {
+            return bundledPath;
+        }
+
+        try {
+            nodeFS.accessSync(bundledPath, nodeFS.constants.X_OK);
+            return bundledPath;
+        } catch (error) {
+            try {
+                nodeFS.chmodSync(bundledPath, 0o755);
+                nodeFS.accessSync(bundledPath, nodeFS.constants.X_OK);
+                return bundledPath;
+            } catch (chmodError) {
+                // AppImage contents are mounted read-only. Copy the tool to a
+                // writable location if the package lost its executable bit.
+                const appVersion = pjson?.version || "current";
+                const runtimeDir = path.join(
+                    remote.app.getPath("userData"),
+                    "firmware-tools",
+                    appVersion
+                );
+                const runtimePath = path.join(runtimeDir, path.basename(bundledPath));
+
+                nodeFS.mkdirSync(runtimeDir, { recursive: true });
+                nodeFS.copyFileSync(bundledPath, runtimePath);
+                nodeFS.chmodSync(runtimePath, 0o700);
+                nodeFS.accessSync(runtimePath, nodeFS.constants.X_OK);
+
+                return runtimePath;
+            }
+        }
+    };
+
     const findRP2DriveWindows = async () => {
         try {
             const drives = await new Promise((resolve) => {
@@ -156,8 +200,15 @@ var firmwareUpdateMode = false;
         try {
             const drives = await new Promise((resolve) => {
                 let stdout = "";
+                let settled = false;
 
-                const df_h = spawn("df -a", [], { shell: true });
+                const finish = (drivesFound) => {
+                    if (settled) return;
+                    settled = true;
+                    resolve(drivesFound);
+                };
+
+                const df_h = spawn("df", ["-Pk"], { shell: false });
 
                 df_h.stdout.on("data", (data) => {
                     stdout += data.toString();
@@ -167,21 +218,28 @@ var firmwareUpdateMode = false;
                     if (DEBUG_RP2) console.log("df stderr:", data.toString());
                 });
 
-                df_h.on("exit", () => {
+                df_h.on("error", (error) => {
+                    console.error("df spawn error:", error);
+                    finish([]);
+                });
+
+                df_h.on("close", () => {
                     try {
                         const info = stdout
-                            .split("\n")
-                            .filter((a) => a.startsWith("/dev"))
-                            .map((a) => a.split(" ").filter((b) => b.length !== 0))
-                            .map((a) => ({
-                                filesystem: a[0],
-                                blocks: +a[1] * (os.platform() === "darwin" ? 512 : 1024),
-                                mounted: os.platform() === "darwin" ? a[8] : a[5],
+                            .split(/\r?\n/)
+                            .map((line) => line.match(/^(\/dev\/\S+)\s+(\d+)\s+\d+\s+\d+\s+\d+%\s+(.+)$/))
+                            .filter(Boolean)
+                            .map((match) => ({
+                                filesystem: match[1],
+                                blocks: +match[2] * 1024,
+                                mounted: match[3].replace(/\\([0-7]{3})/g, (value, octal) =>
+                                    String.fromCharCode(parseInt(octal, 8))
+                                )
                             }));
-                        resolve(info);
+                        finish(info);
                     } catch (e) {
                         console.error("parse df error:", e);
-                        resolve([]);
+                        finish([]);
                     }
                 });
             });
@@ -301,7 +359,7 @@ var firmwareUpdateMode = false;
                 readStream.on("error", fail);
                 writeStream.on("error", fail);
 
-                writeStream.on("finish", () => {
+                writeStream.on("close", () => {
                     if (finished) return;
                     finished = true;
                     setFirmwareProgress(
@@ -520,16 +578,24 @@ var firmwareUpdateMode = false;
                 }
             } else {
                 let comPort;
+                const beforeAutoConnectFlag = autoConnectFlag;
+                autoConnectFlag = false;
 
                 if (serialPort) {
-                    comPort = serialPort.path;
-                    beforeAutoConnectFlag = autoConnectFlag;
-                    autoConnectFlag = false;
-                    serialPort.close();
+                    const connectedPort = serialPort;
+                    comPort = connectedPort.path;
+                    try {
+                        await closeSerialPort(connectedPort);
+                    } catch (error) {
+                        autoConnectFlag = beforeAutoConnectFlag;
+                        showFirmwareDone(false, "Unable to close serial port: " + error.toString());
+                        return;
+                    }
                 } else {
                     try {
                         comPort = await showPortSelect();
                     } catch (e) {
+                        autoConnectFlag = beforeAutoConnectFlag;
                         showFirmwareDone(false, "Port selection cancelled");
                         return;
                     }
@@ -541,9 +607,31 @@ var firmwareUpdateMode = false;
                     win32: "esptool.exe"
                 };
 
-                let esptoolPath = path.normalize(
-                    sharedObj.rootPath + "/../bin/esptool/" + esptoolName[os.platform()]
+                const platform = os.platform();
+                if (!esptoolName[platform]) {
+                    autoConnectFlag = beforeAutoConnectFlag;
+                    showFirmwareDone(false, "Firmware upgrade is not supported on " + platform);
+                    return;
+                }
+
+                if (platform === "linux" && os.arch() !== "x64") {
+                    autoConnectFlag = beforeAutoConnectFlag;
+                    showFirmwareDone(false, "The bundled Linux esptool requires an x64 system");
+                    return;
+                }
+
+                const bundledEsptoolPath = path.normalize(
+                    sharedObj.rootPath + "/../bin/esptool/" + esptoolName[platform]
                 );
+                let esptoolPath;
+
+                try {
+                    esptoolPath = prepareBundledExecutable(bundledEsptoolPath);
+                } catch (error) {
+                    autoConnectFlag = beforeAutoConnectFlag;
+                    showFirmwareDone(false, "Unable to prepare esptool: " + error.toString());
+                    return;
+                }
 
                 let arg = [
                     "--chip", "esp32",
@@ -558,7 +646,22 @@ var firmwareUpdateMode = false;
                     "0x1000", fwPath
                 ];
 
-                let esptool = spawn(esptoolPath, arg);
+                let esptool = spawn(esptoolPath, arg, { shell: false });
+                let esptoolStderr = "";
+                let esptoolFinished = false;
+
+                const finishEsptool = async (success, message) => {
+                    if (esptoolFinished) return;
+                    esptoolFinished = true;
+                    autoConnectFlag = beforeAutoConnectFlag;
+                    showFirmwareDone(success, message);
+
+                    if (success) {
+                        await serialConnectElectron(comPort);
+                    } else {
+                        autoConnectCheck();
+                    }
+                };
 
                 esptool.stdout.on("data", (data) => {
                     console.log("stdout:", data.toString());
@@ -575,17 +678,27 @@ var firmwareUpdateMode = false;
                 });
 
                 esptool.stderr.on("data", (data) => {
-                    console.log("stderr:", data.toString());
+                    const text = data.toString();
+                    esptoolStderr += text;
+                    console.log("stderr:", text);
                 });
 
-                esptool.on("exit", (code) => {
+                esptool.on("error", (error) => {
+                    console.error("esptool spawn error:", error);
+                    finishEsptool(false, "Unable to start esptool: " + error.toString());
+                });
+
+                esptool.on("close", (code) => {
                     console.warn("esptool exit code", code);
 
                     if (code === 0) {
-                        showFirmwareDone(true, "Firmware Upgrade Successful");
-                        serialConnectElectron(comPort);
+                        finishEsptool(true, "Firmware Upgrade Successful");
                     } else {
-                        showFirmwareDone(false, "Firmware Upgrade Fail with code " + code);
+                        const detail = esptoolStderr.trim().split(/\r?\n/).filter(Boolean).pop();
+                        finishEsptool(
+                            false,
+                            "Firmware Upgrade Fail with code " + code + (detail ? ": " + detail : "")
+                        );
                     }
                 });
             }

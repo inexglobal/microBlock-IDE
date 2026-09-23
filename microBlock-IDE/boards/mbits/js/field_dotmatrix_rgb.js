@@ -1,6 +1,27 @@
 'use strict';
 
-const defaultValue = "\x00\x00\x00\x00\x00";
+const legacyBlankValue = "\\x00".repeat(5);
+const defaultValue = "\\x00".repeat(5 * 5 * 3);
+const normalizeDotMatrixValue = (value) => {
+  const text = String(value == null || value === "" ? defaultValue : value);
+  let normalizedValue;
+
+  if (/^(?:\\x[0-9a-fA-F]{2})+$/.test(text)) {
+    normalizedValue = text.toLowerCase();
+  } else {
+    // Older projects can contain literal NUL bytes from the old default value.
+    // Characters outside the byte range are replacement glyphs from that same
+    // invalid representation, so migrate them to an unlit pixel byte.
+    normalizedValue = Array.from(text, character => {
+      const codePoint = character.codePointAt(0);
+      const byte = codePoint <= 0xFF ? codePoint : 0;
+      return `\\x${byte.toString(16).padStart(2, "0")}`;
+    }).join("");
+  }
+
+  // A blank RGB matrix needs 25 pixels * 3 colour channels = 75 bytes.
+  return normalizedValue === legacyBlankValue ? defaultValue : normalizedValue;
+};
 const collection = [
   "\\x0a\\x1f\\x1f\\x0e\\x04",
   "\\x00\\x0a\\x0e\\x04\\x00",
@@ -38,7 +59,7 @@ const collection = [
 
 class FieldDotMatrixRGB extends Blockly.Field {
   constructor(opt_value, opt_validator) {
-    super(opt_value || defaultValue, opt_validator);
+    super(normalizeDotMatrixValue(opt_value), opt_validator);
 
     this.size_ = new Blockly.utils.Size(0, 0);
     this.SERIALIZABLE = true;
@@ -83,9 +104,10 @@ class FieldDotMatrixRGB extends Blockly.Field {
   }
 
   doClassValidation_(newValue) {
-    this.cachedValidatedValue_ = newValue;
+    const normalizedValue = normalizeDotMatrixValue(newValue);
+    this.cachedValidatedValue_ = normalizedValue;
 
-    return newValue;
+    return normalizedValue;
   }
 
   doValueUpdate_(newValue) {
@@ -544,4 +566,3 @@ FieldDotMatrixRGB.fromJson = function(options) {
 };
 
 Blockly.fieldRegistry.register('field_dotmatrix_rgb', FieldDotMatrixRGB);
-

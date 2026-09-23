@@ -37,7 +37,7 @@ let installExtension = async (extensionId) => {
         if (file.endsWith(".js")) {
             let jsContent = fs.read(`${extensionLocalPath}/blocks/${file}`);
             try {
-                eval(jsContent);
+                await runJavaScript(jsContent, `${extensionLocalPath}/blocks/${file}`);
             } catch (e) {
                 NotifyE("Script run error: " + e.toString());
                 console.error(e);
@@ -170,7 +170,7 @@ let showExtensionList = (extensionList) => {
     });
 }
 
-$(".extension-category-list > li").click(function() {
+$(".extension-category-list > li").click(async function() {
     let categoryName = $(this).text();
 
     let extensionList = { };
@@ -184,8 +184,8 @@ $(".extension-category-list > li").click(function() {
         }
     } else {
         for (const extensionId of fs.ls("/extension")) {
-            let extension = fs.read(`/extension/${extensionId}/extension.js`);
-            extension = eval(extension);
+            const extensionPath = `/extension/${extensionId}/extension.js`;
+            const extension = await evaluateJavaScriptExpression(fs.read(extensionPath), extensionPath);
             extensionList[extensionId] = extension;
             extensionList[extensionId].icon = fs.read(`/extension/${extensionId}/${extension.icon}`);
         }

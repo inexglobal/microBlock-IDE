@@ -903,7 +903,9 @@ let realDeviceUploadFlow = async (code) => {
             try {
                 await method.start();
             } catch (e) {
-                firewareUpgradeFlow();
+                if (typeof globalThis.firmwareUpgradeFlow === "function") {
+                    globalThis.firmwareUpgradeFlow();
+                }
                 throw e;
             }
         };
@@ -917,7 +919,7 @@ let realDeviceUploadFlow = async (code) => {
                 await method.start();
             } catch (e) {
                 console.warn(e);
-                NotifyW("Switch to upload via RawREPL [RECOMMENDED Upgrade fireware]");
+                NotifyW("Switch to upload via RawREPL [RECOMMENDED Upgrade firmware]");
                 await enterToREPL();
             }
         } else {
@@ -927,7 +929,7 @@ let realDeviceUploadFlow = async (code) => {
                 await method.start();
             } catch (e) {
                 console.warn(e);
-                NotifyW("Switch to upload via RawREPL [RECOMMENDED Upgrade fireware]");
+                NotifyW("Switch to upload via RawREPL [RECOMMENDED Upgrade firmware]");
                 await enterToREPL();
             }
         }
@@ -946,10 +948,10 @@ let realDeviceUploadFlow = async (code) => {
                         let dbFwDate = new Date(board.firmware[0].date).getTime();
                         let currentFwDate = new Date(info.date).getTime();
                         if (currentFwDate < dbFwDate) {
-                            if (isElectron) {
-                                firewareUpgradeFlow();
+                            if (isElectron && typeof globalThis.firmwareUpgradeFlow === "function") {
+                                globalThis.firmwareUpgradeFlow();
                             }
-                            throw "Upload fail: MicroPython fireware is out of date";
+                            throw "Upload fail: MicroPython firmware is out of date";
                         }
                     }
                 }

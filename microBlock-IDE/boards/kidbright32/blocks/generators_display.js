@@ -1,7 +1,15 @@
 Blockly.Python.forBlock['display_custom'] = function(block) {
     Blockly.Python.definitions_['import_display'] = 'import display';
 
-    var code = `display.raw(b"${block.getFieldValue('value')}")\n`;
+    var value = String(block.getFieldValue('value') || '');
+    if (!/^(?:\\x[0-9a-fA-F]{2})+$/.test(value)) {
+        value = Array.from(value, character => {
+            const codePoint = character.codePointAt(0);
+            const byte = codePoint <= 0xFF ? codePoint : 0;
+            return `\\x${byte.toString(16).padStart(2, '0')}`;
+        }).join('');
+    }
+    var code = `display.raw(b"${value}")\n`;
     return code;
 };
 

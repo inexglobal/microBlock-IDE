@@ -1,3 +1,7 @@
+// Electron 9's development security checker calls executeJavaScript while
+// inspecting CSP and emits a false warning even with the safe option enabled.
+process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = 'true';
+
 const { app, BrowserWindow, session, protocol } = require('electron')
 const path = require('path');
 var ipcMain = require('electron').ipcMain;
@@ -20,9 +24,10 @@ protocol.registerSchemesAsPrivileged([
     { 
         scheme: 'microblock', 
         privileges: { 
-            standard: true, 
-            supportFetchAPI: true, 
-            secure: true 
+            standard: true,
+            supportFetchAPI: true,
+            secure: true,
+            corsEnabled: true
         }
     }
 ]);
@@ -41,8 +46,11 @@ function createWindow() {
         width: 800,
         height: 600,
         webPreferences: {
-			webSecurity: false,
+            webSecurity: true,
+            allowRunningInsecureContent: false,
             nodeIntegration: true,
+            enableRemoteModule: true,
+            worldSafeExecuteJavaScript: true,
             partition
         },
         icon: path.join(__dirname, "microBlock-IDE/favicon.png")
@@ -73,7 +81,11 @@ ipcMain.on("show-dashboard", (event) => {
         width: 800,
         height: 600,
         webPreferences: {
-            nodeIntegration: true
+            webSecurity: true,
+            allowRunningInsecureContent: false,
+            nodeIntegration: true,
+            enableRemoteModule: true,
+            worldSafeExecuteJavaScript: true
         },
         icon: path.join(__dirname, "microBlock-IDE/favicon.png")
     });

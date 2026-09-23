@@ -6,6 +6,7 @@
         <title>microBlock IDE</title>
         <meta name="description" content="Program a microcontroller with Block & MicroPython, Use without install and Free !">
         <meta name="theme-color" content="#F1C40F" />
+        <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: http: ws: wss:; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'">
         <link rel="icon" href="favicon.ico" sizes="64x64">
         <link rel="manifest" href="manifest.json">
 
@@ -16,8 +17,11 @@
             console.log("This is electron !");
 
             // Load dependencies
-            serialAPI = require('serialport');
             remote = require('electron').remote;
+            // Load the native SerialPort addon in Electron's main process.
+            // Loading it directly in a renderer triggers Electron's
+            // non-context-aware native module warning.
+            serialAPI = remote.require('serialport');
             nativeImage = require("electron").nativeImage;
             dialog = remote.dialog;
             nodeFS = require("fs");
@@ -72,6 +76,7 @@
 
         <!-- Blockly Plugin -->
         <script src="plug-in/block-plus-minus/index.js"></script>
+        <script src="js/blockly-compatibility.js"></script>
 
         <!-- Insert this line above script imports  -->
         <script>
@@ -612,7 +617,15 @@
             </article>
         </section>
 
-        <script>var require = { paths: { 'vs': 'monaco-editor/min/vs' } };</script>
+        <script>
+            self.MonacoEnvironment = {
+                getWorkerUrl: () => new URL(
+                    "monaco-editor/min/vs/base/worker/workerMain.js",
+                    window.location.href
+                ).href
+            };
+            var require = { paths: { 'vs': 'monaco-editor/min/vs' } };
+        </script>
         <script src="monaco-editor/min/vs/loader.js"></script>
 	    <script src="monaco-editor/min/vs/editor/editor.main.nls.js"></script>
 	    <script src="monaco-editor/min/vs/editor/editor.main.js"></script>

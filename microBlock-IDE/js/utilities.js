@@ -143,3 +143,55 @@ function* makeFileIterator(content) {
     }
     return '';
 }
+
+let dynamicScriptId = 0;
+
+const runJavaScript = (source, sourceName="dynamic-script.js") => {
+    const errorKey = `__microBlockDynamicScriptError${dynamicScriptId++}`;
+    const safeSourceName = String(sourceName).replace(/[\r\n]/g, "");
+    const wrappedSource = `try {\n${source}\n} catch (error) { window[${JSON.stringify(errorKey)}] = error; }\n//# sourceURL=${safeSourceName}`;
+    const scriptURL = URL.createObjectURL(new Blob([wrappedSource], { type: "text/javascript" }));
+
+    return new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        const cleanup = () => {
+            script.remove();
+            URL.revokeObjectURL(scriptURL);
+        };
+
+        script.src = scriptURL;
+        script.onload = () => {
+            const error = window[errorKey];
+            delete window[errorKey];
+            cleanup();
+            error ? reject(error) : resolve();
+        };
+        script.onerror = () => {
+            cleanup();
+            reject(new Error(`Unable to load ${safeSourceName}`));
+        };
+        document.head.appendChild(script);
+    });
+};
+
+const evaluateJavaScriptExpression = async (source, sourceName="dynamic-expression.js") => {
+    const resultKey = `__microBlockDynamicExpressionResult${dynamicScriptId++}`;
+    await runJavaScript(`window[${JSON.stringify(resultKey)}] =\n${source}\n`, sourceName);
+    const result = window[resultKey];
+    delete window[resultKey];
+    return result;
+};
+
+const readFileAsDataURL = async filePath => {
+    const mimeTypes = {
+        ".gif": "image/gif",
+        ".jpeg": "image/jpeg",
+        ".jpg": "image/jpeg",
+        ".png": "image/png",
+        ".svg": "image/svg+xml",
+        ".webp": "image/webp"
+    };
+    const mimeType = mimeTypes[path.extname(filePath).toLowerCase()] || "application/octet-stream";
+    const contents = await readFileAsync(filePath);
+    return `data:${mimeType};base64,${contents.toString("base64")}`;
+};
