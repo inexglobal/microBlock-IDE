@@ -24,6 +24,7 @@ M2 = Motor(23, 2, 0)
 class Servo:
     def __init__(self, pin):
         self.pin = PWM(Pin(pin, Pin.OUT), freq=50, duty=0)
+        self._angle = 90
         self.pin.deinit()
         self.pin.init()
         self.pin.freq(50)
@@ -32,6 +33,28 @@ class Servo:
     def angle(self, value):
         value = max(0, min(180, value))
         self.pin.duty(int(25.57 + ((value / 180.0) * 102.3)))
+        self._angle = value
+
+    def move(self, value, speed=50):
+        target = max(0, min(180, value))
+        speed = abs(max(-100, min(100, speed)))
+        if speed == 0:
+            return
+
+        current = self._angle
+        step = max(0.5, speed / 10.0)
+        direction = 1 if target > current else -1
+
+        while abs(target - current) > step:
+            current += direction * step
+            self.angle(current)
+            sleep(0.02)
+
+        self.angle(target)
+
+    def speed(self, value):
+        value = max(-100, min(100, value))
+        self.angle(90 + (value * 0.9))
 
     def stop(self):
         self.pin.duty(0)
@@ -51,6 +74,19 @@ def ADC(ch):
     )
     high, low = i2c.readfrom(ADS7828_ADDR, 2)
     return ((high << 8) | low) & 0x0FFF
+
+
+_zx_sonar1m_adc = 0
+
+
+def set_zx_sonar1m_adc(channel=0):
+    global _zx_sonar1m_adc
+    _zx_sonar1m_adc = max(0, min(7, int(channel)))
+
+
+def zx_sonar1m_cm():
+    # ADC is non-negative, so (value + 39) // 40 is ceil(value / 40).
+    return (ADC(_zx_sonar1m_adc) + 39) // 40
 
 
 _movement_speed = 100
@@ -269,25 +305,48 @@ class Gripper:
         if position in self.positions:
             self.positions[position] = max(0, min(180, degree))
 
-    def _move_to(self, position):
+    def _move_to(self, position, speed=None):
         if not self.enabled or position not in self.positions:
             return
 
         if position == "GRAB" or position == "RELEASE":
-            self.grip_servo.angle(self.positions[position])
+            servo = self.grip_servo
         else:
-            self.lift_servo.angle(self.positions[position])
+            servo = self.lift_servo
+
+        if speed is None:
+            servo.angle(self.positions[position])
+        else:
+            servo.move(self.positions[position], speed)
         sleep(self.settle_time)
 
     def control(self, action):
         if action == "PICK_UP":
+            self._move_to("DOWN")
             self._move_to("GRAB")
             self._move_to("UP")
         elif action == "PLACE_DOWN":
             self._move_to("DOWN")
             self._move_to("RELEASE")
+            self._move_to("UP")
         else:
             self._move_to(action)
+
+    def smooth(self, action, speed=50):
+        speed = abs(max(-100, min(100, speed)))
+        if speed == 0:
+            return
+
+        if action == "PICK_UP":
+            self._move_to("DOWN", speed)
+            self._move_to("GRAB", speed)
+            self._move_to("UP", speed)
+        elif action == "PLACE_DOWN":
+            self._move_to("DOWN", speed)
+            self._move_to("RELEASE", speed)
+            self._move_to("UP", speed)
+        else:
+            self._move_to(action, speed)
 
     def home(self):
         self._move_to("RELEASE")

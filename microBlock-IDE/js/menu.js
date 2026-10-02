@@ -1,7 +1,29 @@
 if (isElectron) {
     const { Menu, MenuItem } = remote;
 
-    Menu.setApplicationMenu(Menu.buildFromTemplate([
+    const getRecentProjectMenuItems = () => {
+        let recentPaths = [];
+        try {
+            recentPaths = JSON.parse(localStorage.getItem("recentProjectPaths") || "[]");
+            if (!Array.isArray(recentPaths)) recentPaths = [];
+        } catch (error) {
+            recentPaths = [];
+        }
+
+        recentPaths = recentPaths.filter(filePath => nodeFS.existsSync(filePath)).slice(0, 8);
+        localStorage.setItem("recentProjectPaths", JSON.stringify(recentPaths));
+        if (recentPaths.length === 0) {
+            return [{ label: "No Recent Projects", enabled: false }];
+        }
+
+        return recentPaths.map(filePath => ({
+            label: path.basename(filePath),
+            sublabel: filePath,
+            click: () => openProject(filePath)
+        }));
+    };
+
+    const buildApplicationMenu = () => Menu.setApplicationMenu(Menu.buildFromTemplate([
         {
             label: 'File',
             submenu: [
@@ -16,6 +38,14 @@ if (isElectron) {
                     click: () => $("#open-project").click()
                 },
                 {
+                    label: "Recent Projects",
+                    submenu: getRecentProjectMenuItems()
+                },
+                {
+                    label: "Project History & Recovery",
+                    click: () => $("#open-project-history").click()
+                },
+                {
                     label: "Save",
                     accelerator: 'Ctrl+S',
                     click: () => $("#save-project").click()
@@ -27,6 +57,10 @@ if (isElectron) {
                         saveAsFlag = true;
                         $("#save-project").click();
                     }
+                },
+                {
+                    label: "Export Project",
+                    click: () => $("#code-share").click()
                 },
                 { type: 'separator' },
                 { role: 'quit' }
@@ -43,7 +77,13 @@ if (isElectron) {
                 { role: 'paste' },
                 { role: 'delete' },
                 { type: 'separator' },
-                { role: 'selectAll' }
+                { role: 'selectAll' },
+                { type: 'separator' },
+                {
+                    label: "Find in Workspace",
+                    accelerator: "Ctrl+F",
+                    click: () => $("#open-workspace-search").click()
+                }
             ]
         },
         {
@@ -175,4 +215,7 @@ if (isElectron) {
             ]
         }
     ]));
+
+    globalThis.refreshApplicationMenu = buildApplicationMenu;
+    buildApplicationMenu();
 }

@@ -452,6 +452,41 @@ ul.switch-mode > li:last-child {
     list-style: none;
     padding: 4px 8px;
     border-left: 1px solid #2C3E50;
+    white-space: nowrap;
+}
+
+.page > .main > footer .workspace-view-status,
+.page > .main > footer .firmware-version-status,
+.page > .main > footer .app-version-status {
+    color: #AAB7B8;
+}
+
+#workspace-actual-size,
+#firmware-version,
+#app-current-version {
+    color: #FFF;
+    font-weight: 600;
+}
+
+.page > .main > footer .connection-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    border-radius: 50%;
+    vertical-align: 1px;
+    background-color: #E74C3C;
+    box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.16);
+}
+
+.page > .main > footer .connection-indicator.is-connecting {
+    background-color: #F1C40F;
+    box-shadow: 0 0 0 2px rgba(241, 196, 15, 0.16);
+}
+
+.page > .main > footer .connection-indicator.is-connected {
+    background-color: #2ECC71;
+    box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.16);
 }
 
 #blocklyArea {
@@ -994,175 +1029,6 @@ ul.switch-mode > li:last-child {
     display: block;
 }
 
-#github_avatar {
-    display: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 100px;
-}
-
-#open-github-dialog {
-    display: none;
-}
-
-#github-dialog {
-    background-color: rgba(0, 0, 0, 0.6);
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 3989;
-    padding: 40px 20px;
-
-    display: none;
-}
-
-#github-dialog > section {
-    background-color: #FFF;
-    width: 380px;
-    border-radius: 4px;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-}
-
-#github-dialog > section > header > div.title {
-    padding: 14px;
-    font-size: 18px;
-    font-weight: bold;
-    position: relative;
-}
-
-#github-dialog > section > header > div.title > .close-btn {
-    position: absolute;
-    top: 50%;
-    right: 10px;
-    transform: translateY(-50%);
-    font-size: 14px;
-    color: #B2BABB;
-    padding: 10px;
-}
-
-#github-dialog > section > header > div.title > .close-btn:hover {
-    color: #7F8C8D;
-}
-
-#github-dialog > section > header > ul {
-    display: flex;
-    flex-direction: row;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-}
-
-#github-dialog > section > header > ul > li {
-    text-align: center;
-    padding: 6px;
-    flex-grow: 1;
-    width: 50%;
-    list-style: none;
-    border: 1px solid #ECF0F1;
-    border-left: none;
-    font-size: 14px;
-}
-
-#github-dialog > section > header > ul > li:last-child {
-    border-right: none;
-}
-
-#github-dialog > section > header > ul > li:hover {
-    background-color: #F8F9F9;
-}
-
-#github-dialog > section > header > ul > li.active {
-    border-bottom: 3px solid #F1C40F;
-}
-
-#github-dialog > section > section > ul {
-    padding: 0;
-    margin: 0;
-    height: 300px;
-    padding: 10px 0;
-    overflow: auto;
-}
-
-#github-dialog > section > section > ul > li {
-    padding: 10px 20px;
-    list-style: none;
-}
-
-#github-dialog > section > section > ul > li:hover {
-    background-color: #F8F9F9;
-}
-
-#github-dialog > section > section > ul > li.active {
-    background-color: #F1C40F;
-    color: #FFF;
-}
-
-#github-dialog > section > section > form {
-    padding: 20px;
-}
-
-#github-dialog > section > section > form > label {
-    display: block;
-    width: 100%;
-    margin-bottom: 6px;
-    font-size: 14px;
-}
-
-
-#github-dialog > section > section > form > input {
-    display: block;
-    width: 100%;
-    margin-bottom: 20px;
-    border: 1px solid #ECF0F1;
-    padding: 6px;
-    outline: none;
-    border-radius: 4px;
-}
-
-#github-dialog > section > section > form > input:focus {
-    border-color: #D0D3D4;
-}
-
-#github-dialog > section > section > form > label > input {
-    margin-bottom: 14px;
-}
-
-#github-dialog > section > section .control-button {
-    text-align: right;
-    padding: 20px;
-}
-
-#github-dialog > section > section > form > .control-button {
-    padding: 0;
-}
-
-#github-dialog > section > section .control-button > button {
-    background-color: #F1C40F;
-    color: #FFF;
-    border: none;
-    border-radius: 4px;
-    padding: 6px 12px;
-    outline: none;;
-}
-
-#github-dialog > section > section .control-button > button:hover {
-    background-color: #D4AC0D;
-}
-
-#github-dialog-open {
-    display: block;
-}
-
-#github-dialog-new {
-    display: none;
-}
-
 #port-select-dialog {
     background-color: rgba(0, 0, 0, 0.6);
     position: absolute;
@@ -1687,84 +1553,846 @@ ul.switch-mode > li:last-child {
     display: none;
 }
 
-#code-share-dialog  {
+#code-share-dialog {
     background-color: rgba(0, 0, 0, 0.6);
-    position: absolute;
+    position: fixed;
     width: 100%;
     height: 100%;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 3989;
-    padding: 40px 20px;
-
+    z-index: 999999;
+    padding: 32px 20px;
     display: none;
+    overflow: auto;
 }
 
-#code-share-dialog  > section {
+#code-share-dialog > section {
     background-color: #FFF;
-    max-width: 400px;
-    border-radius: 4px;
+    width: min(1080px, 100%);
+    border-radius: 10px;
     margin: auto;
     overflow: hidden;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.28);
 }
 
-#code-share-dialog  > section > header {
+#code-share-dialog > section > header {
     position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #F1C40F;
+    color: #FFF;
 }
 
-#code-share-dialog  > section > header > div.title {
-    padding: 14px;
-    font-size: 18px;
+#code-share-dialog > section > header > .title {
+    padding: 16px 20px;
+    font-size: 20px;
     font-weight: bold;
 }
 
-#code-share-dialog  > section > header > .close-btn {
-    position: absolute;
-    top: 50%;
-    right: 10px;
-    transform: translateY(-50%);
-    font-size: 14px;
-    color: #B2BABB;
-    padding: 10px;
+#code-share-dialog > section > header > .close-btn {
+    align-self: stretch;
+    width: 56px;
+    border: 0;
+    background: transparent;
+    color: #FFF;
+    font-size: 18px;
 }
 
-#code-share-dialog  > section > header > .close-btn:hover {
+#code-share-dialog > section > header > .close-btn:hover {
+    background-color: #D4AC0D;
+}
+
+#code-share-dialog .share-layout {
+    display: grid;
+    grid-template-columns: minmax(300px, 0.85fr) minmax(440px, 1.15fr);
+    min-height: 560px;
+}
+
+#code-share-dialog .share-preview-pane {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    height: 560px;
+    min-height: 560px;
+    border-right: 1px solid #E5E8E8;
+    background-color: #FBFCFC;
+}
+
+#code-share-dialog .share-preview-heading {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid #EAECEE;
+    background-color: #FFF;
+}
+
+#code-share-dialog .share-preview-heading strong,
+#code-share-dialog .share-preview-heading span {
+    display: block;
+}
+
+#code-share-dialog .share-preview-heading strong {
+    color: #2C3E50;
+    font-size: 16px;
+}
+
+#code-share-dialog .share-preview-heading span {
+    margin-top: 4px;
     color: #7F8C8D;
+    font-size: 13px;
+}
+
+#code-share-dialog .share-preview-stage {
+    position: relative;
+    flex: 1 1 0;
+    width: 100%;
+    height: 490px;
+    min-height: 490px;
+    overflow: hidden;
+    background-color: #FFF;
 }
 
 #code-share-dialog .preview-block {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
     width: 100%;
-    height: 200px;
+    height: calc(100% - 52px);
 }
 
-#code-share-dialog > section > section > .bottom-menu {
+#code-share-dialog .preview-block .blocklyScrollbarHorizontal,
+#code-share-dialog .preview-block .blocklyScrollbarVertical {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#code-share-dialog .share-preview-controls {
+    position: absolute;
+    right: 12px;
+    bottom: 8px;
+    z-index: 40;
     display: flex;
-    flex-direction: row;
+    align-items: center;
+    padding: 5px;
+    border: 1px solid rgba(127, 140, 141, 0.34);
+    border-radius: 7px;
+    color: #566573;
+    background-color: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.16);
+    backdrop-filter: blur(3px);
+}
+
+#code-share-dialog .share-preview-controls > button + button {
+    margin-left: 4px;
+}
+
+#code-share-dialog .share-preview-controls button {
+    min-width: 30px;
+    height: 28px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 5px;
+    color: #34495E;
+    background-color: transparent;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#code-share-dialog .share-preview-controls button:hover {
+    color: #6E5A00;
+    background-color: #FFF3BF;
+}
+
+#share-preview-zoom-actual {
+    min-width: 52px !important;
+}
+
+#code-share-dialog .share-panel {
+    padding: 26px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    background-color: #F8F9F9;
+}
+
+#code-share-dialog .share-panel > * + * {
+    margin-top: 18px;
+}
+
+#code-share-dialog .share-file-option,
+#code-share-dialog .share-code-option,
+#code-share-dialog .share-screenshot-option {
+    border: 1px solid #E5E8E8;
+    border-radius: 9px;
+    background-color: #FFF;
+    box-shadow: 0 2px 7px rgba(44, 62, 80, 0.05);
+}
+
+#share-project-file {
+    border: 1px solid #D5D8DC;
+    border-radius: 5px;
+    padding: 9px 12px;
+    color: #34495E;
+    background-color: #FFF;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+#share-project-file:hover {
+    border-color: #F1C40F;
+    background-color: #FEF9E7;
+}
+
+#code-share-dialog .share-file-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border-color: #D6EAF8;
+    background-color: #F7FBFE;
+}
+
+#code-share-dialog .share-file-option > button {
+    margin-left: 14px;
+}
+
+#code-share-dialog .share-file-option strong,
+#code-share-dialog .share-file-option span {
+    display: block;
+}
+
+#code-share-dialog .share-file-option strong {
+    margin-bottom: 3px;
+    color: #2C3E50;
+    font-size: 15px;
+}
+
+#code-share-dialog .share-file-option span {
+    color: #7F8C8D;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+#share-project-file {
+    flex: 0 0 auto;
+    border-color: #3498DB;
+    color: #21618C;
+    background-color: #FFF;
+}
+
+#code-share-dialog .share-code-option {
+    padding: 16px;
+    border-color: #D5F5E3;
+    background-color: #F7FCF9;
+}
+
+#code-share-dialog .share-code-title {
+    margin-bottom: 10px;
+}
+
+#code-share-dialog .share-code-title strong,
+#code-share-dialog .share-code-title span {
+    display: block;
+}
+
+#code-share-dialog .share-code-title strong {
+    margin-bottom: 3px;
+    color: #2C3E50;
+    font-size: 15px;
+}
+
+#code-share-dialog .share-code-title span {
+    color: #7F8C8D;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+#code-share-dialog .share-code-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+#code-share-dialog .share-code-actions button {
+    padding: 9px 10px;
+    border: 1px solid #A9DFBF;
+    border-radius: 5px;
+    color: #196F3D;
+    background-color: #FFF;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+#code-share-dialog .share-code-actions button:hover {
+    border-color: #27AE60;
+    background-color: #E9F7EF;
+}
+
+#code-share-dialog .share-code-actions button > i {
+    margin-right: 7px;
+}
+
+#code-share-dialog .share-screenshot-option {
+    padding: 16px;
+    transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+#code-share-dialog .share-screenshot-option.is-highlighted {
+    border-color: #F1C40F;
+    box-shadow: 0 0 0 3px rgba(241, 196, 15, 0.2);
+}
+
+#code-share-dialog .share-screenshot-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+#code-share-dialog .share-screenshot-title strong {
+    color: #2C3E50;
+    font-size: 15px;
+}
+
+#code-share-dialog .share-screenshot-title span {
+    margin-left: 10px;
+    color: #99A3A4;
+    font-size: 13px;
+}
+
+#code-share-dialog .share-screenshot-actions {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 7px;
+}
+
+#code-share-dialog .share-screenshot-actions button {
+    padding: 8px 6px;
+    border: 1px solid #D5D8DC;
+    border-radius: 5px;
+    color: #34495E;
+    background-color: #F8F9F9;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+#code-share-dialog .share-screenshot-actions button:hover:not(:disabled) {
+    border-color: #F1C40F;
+    background-color: #FFF8D8;
+}
+
+#code-share-dialog .share-screenshot-actions button:disabled {
+    cursor: wait;
+    opacity: 0.55;
+}
+
+#code-share-dialog .share-transparency-option {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-top: 12px;
+    padding: 10px 11px;
+    border-radius: 6px;
+    color: #34495E;
+    background-color: #F4F6F7;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    user-select: none;
+}
+
+#code-share-dialog .share-toggle-track + .share-transparency-copy {
+    margin-left: 9px;
+}
+
+#code-share-dialog .share-transparency-option:hover {
+    background-color: #EAFAF1;
+}
+
+#code-share-dialog .share-transparency-option input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+#code-share-dialog .share-toggle-track {
+    position: relative;
+    flex: 0 0 auto;
+    width: 42px;
+    height: 23px;
+    border: 1px solid #B3B6B7;
+    border-radius: 999px;
+    background-color: #D5D8DC;
+    transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+#code-share-dialog .share-toggle-track::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background-color: #FFF;
+    box-shadow: 0 1px 4px rgba(44, 62, 80, 0.3);
+    transition: transform 180ms ease;
+}
+
+#workspace-screenshot-transparent:checked + .share-toggle-track {
+    border-color: #239B56;
+    background-color: #27AE60;
+}
+
+#workspace-screenshot-transparent:checked + .share-toggle-track::after {
+    transform: translateX(19px);
+}
+
+#workspace-screenshot-transparent:focus-visible + .share-toggle-track {
+    outline: 3px solid rgba(52, 152, 219, 0.3);
+    outline-offset: 2px;
+}
+
+#code-share-dialog .share-transparency-copy {
+    min-width: 0;
+}
+
+#code-share-dialog .share-toggle-state {
+    min-width: 28px;
+    margin-left: auto;
+    color: #7F8C8D;
+    font-size: 11px;
+    font-weight: 800;
+    text-align: right;
+}
+
+#code-share-dialog .share-toggle-state::after {
+    content: "OFF";
+}
+
+#workspace-screenshot-transparent:checked ~ .share-toggle-state {
+    color: #1E8449;
+}
+
+#workspace-screenshot-transparent:checked ~ .share-toggle-state::after {
+    content: "ON";
+}
+
+#code-share-dialog .share-transparency-option small {
+    margin-left: 4px;
+    color: #7F8C8D;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+@media screen and (max-width: 760px) {
+    #code-share-dialog {
+        padding: 12px;
+    }
+
+    #code-share-dialog .share-layout {
+        grid-template-columns: 1fr;
+    }
+
+    #code-share-dialog .share-preview-pane {
+        height: 300px;
+        min-height: 300px;
+        border-right: 0;
+        border-bottom: 1px solid #E5E8E8;
+    }
+
+    #code-share-dialog .share-preview-stage {
+        height: 230px;
+        min-height: 230px;
+    }
+
+    #code-share-dialog .share-panel {
+        padding: 18px;
+    }
+}
+
+#help-dialog {
+    z-index: 9998;
+    width: 900px;
+    height: auto;
+    max-height: calc(100% - 48px);
+    top: 24px;
+    left: calc(50% - 450px);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+#help-dialog > header {
+    min-height: 64px;
+    border-bottom: 1px solid #EAECEE;
+    border-radius: 14px 14px 0 0;
+    background-color: #FFF;
+    box-shadow: none;
+}
+
+#help-dialog > header > .title {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    color: #263746;
+    font-size: 21px;
+    font-weight: 700;
+}
+
+#help-dialog .help-title-icon + span {
+    margin-left: 12px;
+}
+
+#help-dialog .help-title-icon {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    color: #263746;
+    background-color: #F1C40F;
+    font-size: 16px;
+}
+
+#help-dialog > header > .title small {
+    display: block;
+    margin-top: 2px;
+    color: #99A3A4;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+#help-dialog > header > .icon > button {
     margin: 0;
-    padding: 0;
+    padding: 0 22px;
+    color: #7F8C8D;
+    background-color: #FFF;
 }
 
-#code-share-dialog > section > section > .bottom-menu > li {
-    flex-grow: 1;
-    list-style: none;
-    border-top: 1px solid #F7F9F9;
-    border-right: 1px solid #F7F9F9;
-    text-align: center;
-}
-
-#code-share-dialog > section > section > .bottom-menu > li:last-child {
-    border-right: none;
-}
-
-#code-share-dialog > section > section > .bottom-menu > li:hover {
+#help-dialog > header > .icon > button:hover {
+    color: #263746;
     background-color: #F7F9F9;
 }
 
-#code-share-dialog > section > section > .bottom-menu > li > i {
+#help-dialog > section.help-content {
+    flex-grow: 0;
+    padding: 20px;
+    color: #34495E;
+    background-color: #F7F9FA;
+    border-radius: 0 0 14px 14px;
+    overflow: auto;
+}
+
+#help-dialog .help-hero {
+    display: flex;
+    align-items: center;
+    padding: 16px 18px;
+    border: 1px solid #F9E79F;
+    border-radius: 12px;
+    background: linear-gradient(120deg, #FFF7D6 0%, #FFFDF4 100%);
+}
+
+#help-dialog .help-hero-icon + div {
+    margin-left: 16px;
+}
+
+#help-dialog .help-hero-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 48px;
+    height: 48px;
+    border-radius: 14px;
+    color: #FFF;
+    background-color: #D4AC0D;
+    box-shadow: 0 7px 16px rgba(212, 172, 13, 0.22);
+    font-size: 20px;
+}
+
+#help-dialog .help-eyebrow {
+    display: block;
+    margin-bottom: 2px;
+    color: #A57C00;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+#help-dialog h2,
+#help-dialog h3,
+#help-dialog h4,
+#help-dialog p {
+    margin-top: 0;
+}
+
+#help-dialog .help-hero h2 {
+    margin-bottom: 3px;
+    color: #263746;
     font-size: 24px;
-    padding: 8px;
+}
+
+#help-dialog .help-hero p {
+    margin-bottom: 0;
+    color: #7B6B34;
+    font-size: 15px;
+}
+
+#help-dialog .help-main {
+    display: grid;
+    grid-template-columns: 0.92fr 1.08fr;
+    gap: 14px;
+    margin-top: 14px;
+}
+
+#help-dialog .help-start,
+#help-dialog .help-resources {
+    padding: 16px;
+    border: 1px solid #E5E8E8;
+    border-radius: 12px;
+    background-color: #FFF;
+}
+
+#help-dialog .help-section-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+#help-dialog .help-section-title > * + * {
+    margin-left: 12px;
+}
+
+#help-dialog .help-section-title h3 {
+    margin-bottom: 0;
+    color: #263746;
+    font-size: 18px;
+}
+
+#help-dialog .help-section-title > span {
+    color: #A6ACAF;
+    font-size: 12px;
+}
+
+#help-dialog .help-steps {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+#help-dialog .help-steps > li + li {
+    margin-top: 9px;
+}
+
+#help-dialog .help-steps li {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) 26px;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    background-color: #F8FAFB;
+}
+
+#help-dialog .help-steps li > span {
+    color: #D4AC0D;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+#help-dialog .help-steps strong {
+    display: block;
+    color: #34495E;
+    font-size: 15px;
+}
+
+#help-dialog .help-steps p {
+    margin: 4px 0 0;
+    color: #899395;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+#help-dialog .help-steps li > i {
+    color: #BFC9CA;
+    text-align: center;
+}
+
+#help-dialog .help-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+#help-dialog .help-grid article {
+    display: flex;
+    align-items: flex-start;
+    min-height: 82px;
+    padding: 13px;
+    border: 1px solid #EEF0F1;
+    border-radius: 9px;
+    background-color: #FAFBFB;
+}
+
+#help-dialog .help-grid article > i + div {
+    margin-left: 12px;
+}
+
+#help-dialog .help-grid article > i {
+    display: grid;
+    place-items: center;
+    flex: 0 0 36px;
+    height: 36px;
+    border-radius: 8px;
+    color: #A57C00;
+    background-color: #FFF4C3;
+    font-size: 14px;
+}
+
+#help-dialog .help-grid h4 {
+    margin-bottom: 3px;
+    color: #2C3E50;
+    font-size: 15px;
+}
+
+#help-dialog .help-grid p {
+    margin-bottom: 0;
+    color: #899395;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+#help-dialog .help-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 14px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    background-color: #263746;
+}
+
+#help-dialog .help-footer > #open-help-website {
+    margin-left: 18px;
+}
+
+#help-dialog .help-shortcuts {
+    display: flex;
+    align-items: center;
+    color: #D5DBDB;
+    font-size: 12px;
+}
+
+#help-dialog .help-shortcuts > * + * {
+    margin-left: 16px;
+}
+
+#help-dialog .help-shortcuts > span {
+    display: inline-flex;
+    align-items: center;
+    padding-right: 16px;
+    border-right: 1px solid #526474;
+    white-space: nowrap;
+}
+
+#help-dialog .help-shortcuts kbd {
+    margin-right: 6px;
+}
+
+#help-dialog .help-shortcuts > span:last-child {
+    padding-right: 0;
+    border-right: 0;
+}
+
+#help-dialog .help-shortcuts > i {
+    color: #F1C40F;
+    font-size: 18px;
+}
+
+#help-dialog kbd {
+    padding: 3px 7px;
+    border: 1px solid #657786;
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    color: #FFF;
+    background-color: #3A4C5C;
+    font-family: inherit;
+    white-space: nowrap;
+}
+
+#help-dialog #open-help-website {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 7px;
+    color: #263746;
+    background-color: #F1C40F;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+#help-dialog #open-help-website > span {
+    margin-right: 8px;
+}
+
+#help-dialog #open-help-website:hover {
+    background-color: #F4D03F;
+}
+
+@media screen and (max-width: 950px) {
+    #help-dialog {
+        width: calc(100% - 40px);
+        left: 20px;
+    }
+}
+
+@media screen and (max-width: 720px) {
+    #help-dialog .help-main {
+        grid-template-columns: 1fr;
+    }
+
+    #help-dialog .help-shortcuts {
+        flex-wrap: wrap;
+    }
+}
+
+@media screen and (max-width: 540px) {
+    #help-dialog {
+        width: 100%;
+        max-height: 100%;
+        top: 0;
+        left: 0;
+        border-radius: 0;
+    }
+
+    #help-dialog > header,
+    #help-dialog > section.help-content {
+        border-radius: 0;
+    }
+
+    #help-dialog .help-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #help-dialog .help-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    #help-dialog .help-footer > #open-help-website {
+        margin-top: 18px;
+        margin-left: 0;
+    }
 }
 
 .embed-only {
@@ -2133,6 +2761,275 @@ ul.switch-mode > li:last-child {
 #file-explorer-dialog > article ul > li.active {
     font-weight: bold;
     background-color: #F8F9F9;
+}
+
+/* Productivity tools: history, project checks, and workspace search. */
+.productivity-dialog {
+    top: 9%;
+    left: 18%;
+    width: 64%;
+    height: 82%;
+    color: #2C3E50;
+}
+
+.productivity-dialog.compact {
+    top: 14%;
+    left: 25%;
+    width: 50%;
+    height: 66%;
+}
+
+.productivity-dialog > header > .title > i {
+    margin-right: 9px;
+}
+
+.productivity-content {
+    box-sizing: border-box;
+    padding: 20px;
+}
+
+.productivity-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 16px;
+    border: 1px solid #F7DC6F;
+    border-radius: 9px;
+    background: linear-gradient(90deg, #FFF9DD, #FFFDF4);
+}
+
+.productivity-toolbar strong,
+.productivity-toolbar span {
+    display: block;
+}
+
+.productivity-toolbar span {
+    margin-top: 4px;
+    color: #7F8C8D;
+    font-size: 13px;
+}
+
+.productivity-toolbar button,
+.productivity-list button {
+    border: 1px solid #D5D8DC;
+    border-radius: 6px;
+    color: #34495E;
+    background-color: #FFF;
+    cursor: pointer;
+}
+
+.productivity-toolbar button {
+    flex: 0 0 auto;
+    padding: 9px 12px;
+    border-color: #F1C40F;
+    font-weight: 700;
+}
+
+.productivity-section {
+    margin-top: 20px;
+}
+
+.productivity-section h3 {
+    margin: 0 0 10px;
+    font-size: 16px;
+}
+
+.productivity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.productivity-empty {
+    padding: 24px;
+    border: 1px dashed #D5D8DC;
+    border-radius: 8px;
+    color: #95A5A6;
+    text-align: center;
+    background-color: #FFF;
+}
+
+.productivity-list-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px;
+    border: 1px solid #E5E8E8;
+    border-radius: 8px;
+    background-color: #FFF;
+}
+
+.productivity-list-item > i,
+.productivity-list-item .result-icon {
+    display: inline-flex;
+    flex: 0 0 34px;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 7px;
+    color: #8A6D00;
+    background-color: #FFF3BF;
+}
+
+.productivity-list-item .item-copy {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.productivity-list-item strong,
+.productivity-list-item small {
+    display: block;
+}
+
+.productivity-list-item strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.productivity-list-item small {
+    margin-top: 3px;
+    overflow: hidden;
+    color: #7F8C8D;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.productivity-list-item .item-action {
+    flex: 0 0 auto;
+    padding: 7px 10px;
+    font-weight: 700;
+}
+
+.productivity-list-item .item-action:hover,
+.productivity-toolbar button:hover {
+    border-color: #D4AC0D;
+    background-color: #FFF8D8;
+}
+
+.workspace-search-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border: 2px solid #D5D8DC;
+    border-radius: 8px;
+    background-color: #FFF;
+}
+
+.workspace-search-box:focus-within {
+    border-color: #F1C40F;
+    box-shadow: 0 0 0 3px rgba(241, 196, 15, 0.16);
+}
+
+.workspace-search-box > i {
+    color: #95A5A6;
+}
+
+.workspace-search-box input {
+    min-width: 0;
+    flex: 1 1 auto;
+    padding: 7px 0;
+    border: 0;
+    outline: 0;
+    color: #2C3E50;
+    background: transparent;
+    font-size: 15px;
+}
+
+.workspace-search-box kbd {
+    padding: 3px 6px;
+    border: 1px solid #D5D8DC;
+    border-radius: 4px;
+    color: #7F8C8D;
+    background-color: #F4F6F7;
+    font-size: 11px;
+}
+
+.productivity-summary {
+    padding: 12px 2px 10px;
+    color: #7F8C8D;
+    font-size: 13px;
+}
+
+.search-results .productivity-list-item {
+    width: 100%;
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.search-results button.productivity-list-item:hover {
+    border-color: #F1C40F;
+    background-color: #FFFDF1;
+}
+
+@media screen and (max-width: 900px) {
+    .productivity-dialog,
+    .productivity-dialog.compact {
+        top: 5%;
+        left: 5%;
+        width: 90%;
+        height: 90%;
+    }
+}
+
+/* The terminal toolbar wraps cleanly even at its minimum width. */
+#terminal > header {
+    min-height: 96px;
+}
+
+#terminal > header > .title {
+    box-sizing: border-box;
+    padding: 10px 14px 7px;
+    font-size: 18px;
+}
+
+#terminal > header > .icon {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 0 10px 10px;
+    transform: none;
+}
+
+#terminal > header > .icon > button {
+    width: 31px;
+    height: 31px;
+    font-size: 13px;
+}
+
+#terminal > header > .icon > button.is-active {
+    color: #2C3E50;
+    background-color: #F1C40F;
+}
+
+#code-share-dialog .share-file-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 8px;
+    margin-left: 14px;
+}
+
+#code-share-dialog .share-file-actions button {
+    padding: 9px 12px;
+    border: 1px solid #3498DB;
+    border-radius: 5px;
+    color: #21618C;
+    background-color: #FFF;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+#code-share-dialog .share-file-actions button:hover:not(:disabled) {
+    background-color: #EBF5FB;
+}
+
+#code-share-dialog .share-file-actions button:disabled {
+    cursor: wait;
+    opacity: 0.55;
 }
 
 #file-explorer-dialog > article ul > li > button.delete-btn {

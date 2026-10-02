@@ -2,6 +2,23 @@ let extensionList = [ ];
 let projectFilePath = null;
 let saveAsFlag = false;
 
+const rememberRecentProject = filePath => {
+    if (!isElectron || !filePath) return;
+
+    let recentPaths = [];
+    try {
+        recentPaths = JSON.parse(localStorage.getItem("recentProjectPaths") || "[]");
+        if (!Array.isArray(recentPaths)) recentPaths = [];
+    } catch (error) {
+        recentPaths = [];
+    }
+    recentPaths = [filePath, ...recentPaths.filter(item => item !== filePath)].slice(0, 8);
+    localStorage.setItem("recentProjectPaths", JSON.stringify(recentPaths));
+    if (typeof globalThis.refreshApplicationMenu === "function") {
+        globalThis.refreshApplicationMenu();
+    }
+};
+
 var blocklyWorkspace;
 
 let updateBlockCategory = async () => {
@@ -140,7 +157,14 @@ if (isEmbed) {
     $(".embed-only").show();
 
     $("#embed-edit").click(() => {
-        window.open(`https://ide.microblock.app/?open=${pageParams.get("open") || ""}`, "_blank");
+        const editURL = new URL(window.location.href);
+        editURL.searchParams.delete("embed");
+        editURL.searchParams.delete("id");
+        editURL.searchParams.delete("width");
+        editURL.searchParams.delete("height");
+        editURL.searchParams.delete("blockOnly");
+        editURL.searchParams.delete("fit");
+        window.open(editURL.toString(), "_blank");
     });
 
     let allParams = { };
@@ -165,6 +189,39 @@ if (isEmbed) {
 var blocklyArea = document.getElementById('blocklyArea');
 var blocklyDiv = document.getElementById('blocklyDiv');
 
+const blocklySoundSettingKey = "blocklySoundsEnabled";
+let blocklySoundsEnabled = localStorage.getItem(blocklySoundSettingKey) !== "false";
+const playBlocklySound = Blockly.WorkspaceAudio.prototype.play;
+
+Blockly.WorkspaceAudio.prototype.play = function(name, volume) {
+    if (blocklySoundsEnabled) {
+        return playBlocklySound.call(this, name, volume);
+    }
+};
+
+const updateSoundToggle = () => {
+    const button = document.getElementById("toggle-sound");
+    if (!button) return;
+
+    const tooltip = blocklySoundsEnabled ? "Turn Sound Off" : "Turn Sound On";
+    button.setAttribute("data-tippy-content", tooltip);
+    button.setAttribute("aria-label", tooltip);
+    button.setAttribute("aria-pressed", String(!blocklySoundsEnabled));
+    button.querySelector("i").className = blocklySoundsEnabled ? "fas fa-volume-up" : "fas fa-volume-mute";
+
+    if (button._tippy) {
+        button._tippy.setContent(tooltip);
+    }
+};
+
+$("#toggle-sound").click(() => {
+    blocklySoundsEnabled = !blocklySoundsEnabled;
+    localStorage.setItem(blocklySoundSettingKey, String(blocklySoundsEnabled));
+    updateSoundToggle();
+});
+
+updateSoundToggle();
+
 blocklyWorkspace = Blockly.inject(blocklyDiv, {
     media: 'blockly/media/',
     toolbox: document.getElementById('toolbox'),
@@ -177,11 +234,11 @@ blocklyWorkspace = Blockly.inject(blocklyDiv, {
     trashcan : true,
     zoom: {
         controls: true,
-        wheel: (isEmbed && embedOption.blockOnly) ? false : true,
+        wheel: false,
         startScale: 1,
-        maxScale: Infinity,
+        maxScale: 2.5,
         minScale: 0.3,
-        scaleSpeed: 1.2
+        scaleSpeed: 1.05
     },
     scrollbars : (isEmbed && embedOption.blockOnly) ? false : true,
     comments : true, 
@@ -195,6 +252,58 @@ blocklyWorkspace = Blockly.inject(blocklyDiv, {
     /* Option */
     renderer: localStorage.getItem("renderer") || "geras",
 });
+
+const addFlyoutBottomPadding = (workspace, paddingPixels = 80) => {
+    const flyout = workspace.getFlyout();
+    if (!flyout) return;
+
+    const flyoutWorkspace = flyout.getWorkspace();
+    const metricsManager = flyoutWorkspace.getMetricsManager();
+    if (metricsManager.hasExtraBottomPadding) return;
+
+    const getScrollMetrics = metricsManager.getScrollMetrics.bind(metricsManager);
+    metricsManager.getScrollMetrics = function(getWorkspaceCoordinates, viewMetrics, contentMetrics) {
+        const metrics = getScrollMetrics(getWorkspaceCoordinates, viewMetrics, contentMetrics);
+        const scale = getWorkspaceCoordinates ? (flyoutWorkspace.scale || 1) : 1;
+        metrics.height += paddingPixels / scale;
+        return metrics;
+    };
+    metricsManager.hasExtraBottomPadding = true;
+    flyoutWorkspace.resizeContents();
+};
+
+addFlyoutBottomPadding(blocklyWorkspace);
+
+const updateWorkspaceViewStatus = () => {
+    $("#workspace-actual-size").text(`${Math.round(blocklyWorkspace.scale * 100)}%`);
+
+    if (typeof pjson !== "undefined" && pjson.version) {
+        $("#app-current-version").text(String(pjson.version));
+    }
+};
+
+blocklyWorkspace.addChangeListener(updateWorkspaceViewStatus);
+updateWorkspaceViewStatus();
+
+const zoomWorkspaceByFivePercent = direction => {
+    const currentScale = blocklyWorkspace.scale;
+    const targetScale = Math.min(2.5, Math.max(0.3,
+        Math.round((currentScale + (direction * 0.05)) * 100) / 100));
+    if (targetScale === currentScale) return;
+
+    const scaleSpeed = blocklyWorkspace.options.zoomOptions.scaleSpeed;
+    const zoomAmount = Math.log(targetScale / currentScale) / Math.log(scaleSpeed);
+    blocklyWorkspace.zoomCenter(zoomAmount);
+    updateWorkspaceViewStatus();
+};
+
+if (!(isEmbed && embedOption.blockOnly)) {
+    blocklyWorkspace.getParentSvg().addEventListener("wheel", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        zoomWorkspaceByFivePercent(event.deltaY < 0 ? 1 : -1);
+    }, { passive: false, capture: true });
+}
 
 window.addEventListener('resize', Blockly.triggleResize, false);
 Blockly.triggleResize();
@@ -390,6 +499,9 @@ if (isElectron) {
             console.log(filePath);
             if (nodeFS.existsSync(filePath)) {
                 vFSTree = JSON.parse(nodeFS.readFileSync(filePath));
+                projectFilePath = filePath;
+                rememberRecentProject(filePath);
+                $("#project-name").val(path.basename(filePath, ".mby"));
                 loadCodeAlready = true;
                 sharedObj.argv = [ ];
             }
@@ -464,11 +576,13 @@ let saveCodeToLocal = () => {
     }
     fs.write("/config.json", JSON.stringify({
         mode: useMode,
-        github: github_project_repo,
         board: boardId,
         level: levelName
     }));
     localStorage.setItem("autoSaveFS", JSON.stringify(vFSTree));
+    if (typeof globalThis.queueProjectHistorySnapshot === "function") {
+        globalThis.queueProjectHistorySnapshot("Auto Save");
+    }
 };
 
 blocklyWorkspace.addChangeListener(saveCodeToLocal);
@@ -488,52 +602,48 @@ $("#new-project").click(async () => {
 */
 
 $("#save-project").click(async () => {
-    if (!github_project_repo) { // Save to local
-        if (!isElectron) {
-            let data = JSON.stringify(vFSTree);
-            let blob = new Blob([data], { type: "application/json" });
-            let url = window.URL.createObjectURL(blob);
-            
-            let link = document.createElement("a");
-            link.download = $("#project-name").val() + ".mby";
-            link.href = url;
-            link.click();
+    saveCodeToLocal();
 
-            window.URL.revokeObjectURL(url);
+    if (!isElectron) {
+        let data = JSON.stringify(vFSTree);
+        let blob = new Blob([data], { type: "application/json" });
+        let url = window.URL.createObjectURL(blob);
 
-            statusLog("Save project");
-        } else {
-            let OpenFilePath = "";
-            if ((!projectFilePath) || saveAsFlag) {
-                let result = await dialog.showSaveDialog({
-                    filters: [{ 
-                        name: 'microBlock IDE', 
-                        extensions: ['mby'] 
-                    }],
-                    defaultPath: $("#project-name").val() + ".mby"
-                });
-        
-                if (result.canceled) {
-                    return;
-                }
+        let link = document.createElement("a");
+        link.download = $("#project-name").val() + ".mby";
+        link.href = url;
+        link.click();
 
-                projectFilePath = result.filePath;
-                saveAsFlag = false;
-            }
-
-            nodeFS.writeFile(projectFilePath, JSON.stringify(vFSTree), err => {
-                if (err) {
-                    NotifyE("Save project fail: " + err.toString());
-                    return;
-                }
-
-                NotifyS("Save project at " + projectFilePath);
-                statusLog("Save project at " + projectFilePath);
-            });
-        }
-    } else { // Save to GitHub
-        saveCodeToGitHub();
+        window.URL.revokeObjectURL(url);
+        statusLog("Save project");
+        return;
     }
+
+    if ((!projectFilePath) || saveAsFlag) {
+        let result = await dialog.showSaveDialog({
+            filters: [{
+                name: "microBlock IDE",
+                extensions: ["mby"]
+            }],
+            defaultPath: $("#project-name").val() + ".mby"
+        });
+
+        if (result.canceled) return;
+
+        projectFilePath = result.filePath;
+        saveAsFlag = false;
+    }
+
+    nodeFS.writeFile(projectFilePath, JSON.stringify(vFSTree), err => {
+        if (err) {
+            NotifyE("Save project fail: " + err.toString());
+            return;
+        }
+
+        NotifyS("Save project at " + projectFilePath);
+        statusLog("Save project at " + projectFilePath);
+        rememberRecentProject(projectFilePath);
+    });
 });
 
 let openProjectFromData = async (data, path) => {
@@ -592,7 +702,8 @@ let openProject = async (filePath) => {
             }
 
             projectFilePath = OpenFilePath;
-            openProjectFromData(data, OpenFilePath);
+            await openProjectFromData(data, OpenFilePath);
+            rememberRecentProject(OpenFilePath);
         });
     }
 };
@@ -602,10 +713,14 @@ $("#open-project").click(async () => {
 });
 
 $("#open-help").click(() => {
+    ShowDialog($("#help-dialog"));
+});
+
+$("#open-help-website").click(() => {
     if (!isElectron) {
-        window.open("https://microblock.app/", "_blank");
+        window.open("https://github.com/inexglobal/microBlock-IDE", "_blank");
     } else {
-        shell.openExternal("https://microblock.app/");
+        shell.openExternal("https://github.com/inexglobal/microBlock-IDE");
     }
 });
 
@@ -695,6 +810,57 @@ let autoConnectCheck = async () => {
 if (isElectron) {
     autoConnectCheck();
 
+    const compareAppVersions = (leftVersion, rightVersion) => {
+        const parseVersion = version => {
+            const normalizedVersion = String(version || "")
+                .trim()
+                .replace(/^v/i, "")
+                .split("+")[0];
+            const [coreVersion, ...prereleaseParts] = normalizedVersion.split("-");
+
+            return {
+                core: coreVersion.split(".").map(part => Number.parseInt(part, 10) || 0),
+                prerelease: prereleaseParts.join("-").split(".").filter(Boolean)
+            };
+        };
+
+        const left = parseVersion(leftVersion);
+        const right = parseVersion(rightVersion);
+        const coreLength = Math.max(left.core.length, right.core.length);
+
+        for (let index = 0; index < coreLength; index += 1) {
+            const leftPart = left.core[index] || 0;
+            const rightPart = right.core[index] || 0;
+
+            if (leftPart > rightPart) return 1;
+            if (leftPart < rightPart) return -1;
+        }
+
+        if (!left.prerelease.length && right.prerelease.length) return 1;
+        if (left.prerelease.length && !right.prerelease.length) return -1;
+
+        const prereleaseLength = Math.max(left.prerelease.length, right.prerelease.length);
+        for (let index = 0; index < prereleaseLength; index += 1) {
+            if (index >= left.prerelease.length) return -1;
+            if (index >= right.prerelease.length) return 1;
+
+            const leftPart = left.prerelease[index];
+            const rightPart = right.prerelease[index];
+
+            const leftIsNumber = /^\d+$/.test(leftPart);
+            const rightIsNumber = /^\d+$/.test(rightPart);
+            if (leftIsNumber && !rightIsNumber) return -1;
+            if (!leftIsNumber && rightIsNumber) return 1;
+
+            const leftValue = leftIsNumber ? Number(leftPart) : leftPart;
+            const rightValue = rightIsNumber ? Number(rightPart) : rightPart;
+            if (leftValue > rightValue) return 1;
+            if (leftValue < rightValue) return -1;
+        }
+
+        return 0;
+    };
+
     // Update Check
     checkUpdate = async () => {
         let lastPackageFile = await fetch("https://api.github.com/repos/inexglobal/microBlock-IDE/contents/package.json");
@@ -705,8 +871,8 @@ if (isElectron) {
         lastPackageFile = await lastPackageFile.json();
         lastPackageFile = Base64.decode(lastPackageFile.content);
         lastPackageFile = JSON.parse(lastPackageFile);
-        if (typeof lastPackageFile.version !== "undefined") {
-            if (lastPackageFile.version !== pjson.version) {
+        if (Object.prototype.hasOwnProperty.call(lastPackageFile, "version")) {
+            if (compareAppVersions(lastPackageFile.version, pjson.version) > 0) {
                 console.log("microBlock IDE offline have new version", lastPackageFile.version, pjson.version);
                 NotifyI("microBlock IDE offline have new version");
             } else {

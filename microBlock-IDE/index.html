@@ -167,11 +167,15 @@
                             <li><button id="install-pwa" style="display: none;" onclick="installPWA()" data-tippy-content="Install microBlock to your PC"><i class="fas fa-download"></i></button></li>
                             <li><button id="open-extension-dialog" data-tippy-content="Extension"><i class="fas fa-cubes"></i></button></li>
                             <li><button id="open-dashboard" data-tippy-content="Dashboard"><i class="fas fa-chart-line"></i></button></li>
+                            <!-- Temporarily hidden until the Examples feature is ready.
                             <li><button id="open-example-dialog" data-tippy-content="Examples"><i class="fas fa-book"></i></button></li>
+                            -->
+                            <li><button id="open-project-history" data-tippy-content="Project History"><i class="fas fa-history"></i></button></li>
+                            <li><button id="open-workspace-search" data-tippy-content="Find in Workspace"><i class="fas fa-search"></i></button></li>
+                            <li><button id="toggle-sound" data-tippy-content="Turn Sound Off" aria-label="Turn Sound Off" aria-pressed="false"><i class="fas fa-volume-up"></i></button></li>
                             <li><button id="open-help" data-tippy-content="Help"><i class="fas fa-question"></i></button></li>
-                            <li><button id="github-signin" data-tippy-content="Sign in with GihHub"><i class="fab fa-github"></i></button></li>
-                            <li><img id="github_avatar" src="" alt="GitHub Avatar" data-tippy-content="Sign out GihHub"></li>
-                            <li><button id="code-share" data-tippy-content="Share Project"><i class="fas fa-share"></i></button></li>
+                            <li><button id="workspace-screenshot" data-tippy-content="Export Screenshot"><i class="fas fa-camera"></i></button></li>
+                            <li><button id="code-share" data-tippy-content="Export Project"><i class="fas fa-file-export"></i></button></li>
                         </ul>
                         <ul class="embed-only top-bar-button" style="display: none;">
                             <li><button id="embed-edit" data-tippy-content="Upload & Edit"><i class="fas fa-external-link-alt"></i></button></li>
@@ -204,7 +208,6 @@
                             <li><input type="text" id="project-name" value="myProject" placeholder="Project Name"></li>
                             <li><button id="save-project" data-tippy-content="Save project"><i class="far fa-save"></i></button></li>
                             <li><button id="open-project" data-tippy-content="Open project"><i class="far fa-folder-open"></i></button></li>
-                            <li><button id="open-github-dialog" data-tippy-content="GitHub Manager"><i class="fab fa-github"></i></button></li>
                         </ul>
                         <ul class="button-list center">
                             <li>
@@ -223,9 +226,12 @@
                         <div class="right">
                             <ul>
                                 <li>Board: <span id="board-name">None</span></li>
-                                <li>Port: <span id="port-name">DISCONNECT</span></li>
+                                <li class="port-status-item"><span id="connection-indicator" class="connection-indicator is-disconnected" role="status" aria-label="Disconnected" title="Disconnected"></span>Port: <span id="port-name">DISCONNECT</span></li>
                                 <!-- <li>Level: <span id="level-name">None</span></li> -->
                                 <li>Mode: <span id="device-mode-name">None</span></li>
+                                <li id="firmware-version-status" class="firmware-version-status" style="display: none;">FW: <span id="firmware-version"></span></li>
+                                <li class="workspace-view-status">Zoom: <span id="workspace-actual-size">100%</span></li>
+                                <li class="app-version-status">App: v<span id="app-current-version">3.2.0</span></li>
                             </ul>
                         </div>
                     </div>
@@ -239,6 +245,9 @@
                     <div class="icon">
                         <button id="connect-device" data-tippy-content="Connect"><i class="fas fa-link"></i></button>
                         <button id="disconnect-device" data-tippy-content="Disconnect"><i class="fas fa-comment-slash"></i></button>
+                        <button id="toggle-terminal-timestamps" data-tippy-content="Show Timestamps" aria-pressed="false"><i class="far fa-clock"></i></button>
+                        <button id="pause-terminal" data-tippy-content="Pause Output" aria-pressed="false"><i class="fas fa-pause"></i></button>
+                        <button id="export-terminal-log" data-tippy-content="Export Log"><i class="fas fa-file-download"></i></button>
                         <button id="clear-terminal" data-tippy-content="Clear"><i class="fas fa-eraser"></i></button>
                         <button id="resize-terminal" data-tippy-content="Resize"><i class="fas fa-expand-alt"></i></button>
                         <button id="close-terminal" data-tippy-content="Close"><i class="fas fa-times"></i></button>
@@ -366,38 +375,6 @@
             </section>
         </div>
 
-        <div class="dialog-tab" id="github-dialog">
-            <section>
-                <header>
-                    <div class="title">Project hosted on GitHub<div class="close-btn"><i class="fas fa-times"></i></div></div>
-                    <ul>
-                        <li data-active="#github-dialog-open">Open Project</li>
-                        <li data-active="#github-dialog-new">New Project</li>
-                    </ul>
-                </header>
-                <section id="github-dialog-open">
-                    <ul id="github-repository-list">
-
-                    </ul>
-                    <div class="control-button">
-                        <button id="github-open-project-button">Open Project</button>
-                    </div>
-                </section>
-                <section id="github-dialog-new">
-                    <form action="" method="POST" id="form-github-create-project" autocomplete="off">
-                        <label for="github-create-project-name">Project Name</label>
-                        <input type="text" name="name" pattern="[A-Za-z0-9\-_]+" placeholder="GitHub repository name" required>
-                        <label for="github-create-project-description">Project Description</label>
-                        <input type="text" name="description" placeholder="GitHub repository description">
-                        <label><input type="checkbox" name="save-code" value="1" checked> Save current code to new project</label>
-                        <div class="control-button">
-                            <button type="submit">Create Project</button>
-                        </div>
-                    </form>
-                </section>
-            </section>
-        </div>
-
         <div id="project-create-dialog">
             <section>
                 <header>
@@ -490,22 +467,153 @@
             </section>
         </div>
 
-        <div id="code-share-dialog">
+        <div id="code-share-dialog" role="dialog" aria-modal="true" aria-labelledby="code-share-title">
             <section>
                 <header>
-                    <div class="title">Share</div>
-                    <div class="close-btn"><i class="fas fa-times"></i></div>
+                    <div class="title" id="code-share-title">Export Project</div>
+                    <button type="button" class="close-btn" aria-label="Close Export Project"><i class="fas fa-times"></i></button>
                 </header>
                 <section>
-                    <div class="preview-block"></div>
-                    <ul class="bottom-menu">
-                        <li data-type="link" data-tippy-content="Copy share link to clipboard"><i class="fas fa-link" style="color: #2C3E50;"></i></li>
-                        <li data-type="facebook" data-tippy-content="Share to Facebook"><i class="fab fa-facebook-f" style="color: #4267b2;"></i></li>
-                        <li data-type="line" data-tippy-content="Share to LINE"><i class="fab fa-line" style="color: #00b900;"></i></li>
-                        <li data-type="twitter" data-tippy-content="Share to Twitter"><i class="fab fa-twitter" style="color: #1da1f2;"></i></li>
-                        <li data-type="code" data-tippy-content="Copy Embed code"><i class="fas fa-code" style="color: #D4AC0D;"></i></li>
-                    </ul>
+                    <div class="share-layout">
+                        <div class="share-preview-pane">
+                            <div class="share-preview-heading">
+                                <strong>Project Preview</strong>
+                                <span>Preview of all blocks · Use the mouse wheel to zoom</span>
+                            </div>
+                            <div class="share-preview-stage">
+                                <div class="preview-block" aria-label="Project preview"></div>
+                                <div class="share-preview-controls" aria-label="Preview zoom controls">
+                                    <button type="button" id="share-preview-zoom-out" title="Zoom Out" aria-label="Zoom Out"><i class="fas fa-minus"></i></button>
+                                    <button type="button" id="share-preview-zoom-actual" title="Actual Size (100%)" aria-label="Reset to Actual Size"><span id="share-preview-zoom-level">100%</span></button>
+                                    <button type="button" id="share-preview-zoom-in" title="Zoom In" aria-label="Zoom In"><i class="fas fa-plus"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="share-panel">
+                            <div class="share-file-option">
+                                <div><strong>Project File</strong><span>Export a .mby file, then share it with LINE, email, Drive, or USB.</span></div>
+                                <div class="share-file-actions">
+                                    <button type="button" id="share-project-file"><i class="fas fa-file-export"></i> Export .mby</button>
+                                    <button type="button" id="export-project-package"><i class="fas fa-file-archive"></i> Export ZIP</button>
+                                </div>
+                            </div>
+                            <div class="share-code-option">
+                                <div class="share-code-title"><strong>Source Code</strong><span id="share-code-description">Export or copy the generated Python code.</span></div>
+                                <div class="share-code-actions">
+                                    <button type="button" id="export-source-code"><i class="fab fa-python"></i><span id="export-source-code-label">Export Python (.py)</span></button>
+                                    <button type="button" id="copy-source-code"><i class="fas fa-copy"></i><span id="copy-source-code-label">Copy Python Code</span></button>
+                                </div>
+                            </div>
+                            <div class="share-screenshot-option">
+                                <div class="share-screenshot-title"><strong>Workspace Screenshot</strong><span>Export all blocks at full resolution.</span></div>
+                                <div class="share-screenshot-actions">
+                                    <button type="button" data-screenshot-format="svg"><i class="fas fa-bezier-curve"></i> SVG</button>
+                                    <button type="button" data-screenshot-format="png"><i class="far fa-file-image"></i> PNG</button>
+                                    <button type="button" data-screenshot-format="jpg"><i class="fas fa-image"></i> JPG</button>
+                                    <button type="button" data-screenshot-format="pdf"><i class="far fa-file-pdf"></i> PDF</button>
+                                </div>
+                                <label class="share-transparency-option" for="workspace-screenshot-transparent">
+                                    <input type="checkbox" id="workspace-screenshot-transparent">
+                                    <span class="share-toggle-track" aria-hidden="true"></span>
+                                    <span class="share-transparency-copy"><i class="fas fa-chess-board"></i> Transparent Background <small>PNG only</small></span>
+                                    <span class="share-toggle-state" aria-hidden="true"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                 </section>
+            </section>
+        </div>
+
+        <div id="project-history-dialog" class="dialog productivity-dialog">
+            <header>
+                <div class="title"><i class="fas fa-history"></i> Project History &amp; Recovery</div>
+                <div class="icon"><button data-tippy-content="Close" class="close-dialog"><i class="fas fa-times"></i></button></div>
+            </header>
+            <section class="productivity-content">
+                <div class="productivity-toolbar">
+                    <div><strong>Recovery Points</strong><span>Up to 10 recent versions are saved automatically on this computer.</span></div>
+                    <button type="button" id="save-recovery-point"><i class="fas fa-bookmark"></i> Save Point</button>
+                </div>
+                <div id="recent-projects-section" class="productivity-section">
+                    <h3>Recent Projects</h3>
+                    <div id="recent-projects-list" class="productivity-list"></div>
+                </div>
+                <div class="productivity-section">
+                    <h3>Auto Save History</h3>
+                    <div id="project-history-list" class="productivity-list"></div>
+                </div>
+            </section>
+        </div>
+
+        <div id="workspace-search-dialog" class="dialog productivity-dialog compact">
+            <header>
+                <div class="title"><i class="fas fa-search"></i> Find in Workspace</div>
+                <div class="icon"><button data-tippy-content="Close" class="close-dialog"><i class="fas fa-times"></i></button></div>
+            </header>
+            <section class="productivity-content">
+                <label class="workspace-search-box" for="workspace-search-input">
+                    <i class="fas fa-search"></i>
+                    <input id="workspace-search-input" type="search" autocomplete="off" placeholder="Search blocks, functions, or variables">
+                    <kbd>Esc</kbd>
+                </label>
+                <div id="workspace-search-summary" class="productivity-summary">Type to search the current workspace.</div>
+                <div id="workspace-search-results" class="productivity-list search-results"></div>
+            </section>
+        </div>
+
+        <div id="help-dialog" class="dialog">
+            <header>
+                <div class="title">
+                    <span class="help-title-icon"><i class="fas fa-question"></i></span>
+                    <span>Help Center<small>microBlock IDE</small></span>
+                </div>
+                <div class="icon">
+                    <button type="button" data-tippy-content="Close" class="close-dialog"><i class="fas fa-times"></i></button>
+                </div>
+            </header>
+            <section class="help-content">
+                <div class="help-hero">
+                    <span class="help-hero-icon"><i class="fas fa-rocket"></i></span>
+                    <div>
+                        <span class="help-eyebrow">Quick Start Guide</span>
+                        <h2>Build Your First Project</h2>
+                        <p>From an idea to a running board in four simple steps.</p>
+                    </div>
+                </div>
+                <div class="help-main">
+                    <section class="help-start">
+                        <div class="help-section-title">
+                            <h3>Start Here</h3>
+                            <span>Follow these steps in order</span>
+                        </div>
+                        <ol class="help-steps">
+                            <li><span>01</span><div><strong>Choose Your Board</strong><p>Select the board and user level from the <b>Board</b> menu.</p></div><i class="fas fa-microchip"></i></li>
+                            <li><span>02</span><div><strong>Create Your Program</strong><p>Build with blocks or switch to Code for MicroPython.</p></div><i class="fas fa-code"></i></li>
+                            <li><span>03</span><div><strong>Connect the Device</strong><p>Open Terminal, select the serial port, then connect.</p></div><i class="fas fa-link"></i></li>
+                            <li><span>04</span><div><strong>Upload and Run</strong><p>Press Upload and follow the firmware prompt if shown.</p></div><i class="fas fa-upload"></i></li>
+                        </ol>
+                    </section>
+                    <section class="help-resources">
+                        <div class="help-section-title">
+                            <h3>Tools &amp; Tips</h3>
+                            <span>Useful features at a glance</span>
+                        </div>
+                        <div class="help-grid">
+                            <article><i class="fas fa-folder-open"></i><div><h4>Projects</h4><p>Save and open <code>.mby</code> files.</p></div></article>
+                            <article><i class="fas fa-history"></i><div><h4>History</h4><p>Restore one of the last 10 auto-saved versions.</p></div></article>
+                            <article><i class="fas fa-search"></i><div><h4>Find</h4><p>Search blocks, functions, and variables.</p></div></article>
+                            <article><i class="fas fa-file-archive"></i><div><h4>Project Package</h4><p>Export the project, source, preview, and board info in one ZIP.</p></div></article>
+                            <article><i class="fas fa-terminal"></i><div><h4>Serial Tools</h4><p>Add timestamps, pause output, or export a log.</p></div></article>
+                            <article><i class="fas fa-cubes"></i><div><h4>Extensions</h4><p>Add blocks for more hardware.</p></div></article>
+                            <article><i class="fas fa-camera"></i><div><h4>Screenshots</h4><p>Export the full workspace as SVG, PNG, JPG, or PDF.</p></div></article>
+                        </div>
+                    </section>
+                </div>
+                <footer class="help-footer">
+                    <div class="help-shortcuts"><i class="fas fa-keyboard"></i><span><kbd>Ctrl + S</kbd> Save</span><span><kbd>Ctrl + O</kbd> Open</span><span><kbd>Ctrl + F</kbd> Find</span><span><kbd>Ctrl + U</kbd> Upload</span><span><kbd>Ctrl + H</kbd> Help</span></div>
+                    <button type="button" id="open-help-website"><span>More Help</span><i class="fas fa-arrow-right"></i></button>
+                </footer>
             </section>
         </div>
 
@@ -680,5 +788,6 @@
         <script src="js/install.js"></script>
 
         <script src="js/app.js"></script>
+        <script src="js/productivity.js"></script>
     </body>
 </html>

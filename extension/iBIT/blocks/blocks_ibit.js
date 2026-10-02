@@ -234,7 +234,36 @@ Blockly.defineBlocksWithJsonArray([
         "previousStatement": null,
         "nextStatement": null,
         "colour": "#3498DB",
-        "tooltip": "Run a Gripper-X action. Pick up is Grab then Up; place down is Down then Release.",
+        "tooltip": "Run a Gripper-X action. Pick up is Down, Grab, then Up; place down is Down, Release, then Up.",
+        "helpUrl": ""
+    },
+    {
+        "type": "ibit_gripper_smooth",
+        "message0": "Gripper-X Smooth %1 Speed %2",
+        "args0": [
+            {
+                "type": "field_dropdown",
+                "name": "action",
+                "options": [
+                    ["Pick Up", "PICK_UP"],
+                    ["Place Down", "PLACE_DOWN"],
+                    ["Grab", "GRAB"],
+                    ["Release", "RELEASE"],
+                    ["Up", "UP"],
+                    ["Down", "DOWN"]
+                ]
+            },
+            {
+                "type": "input_value",
+                "name": "speed",
+                "check": "Number"
+            }
+        ],
+        "inputsInline": true,
+        "previousStatement": null,
+        "nextStatement": null,
+        "colour": "#3498DB",
+        "tooltip": "Run a Gripper-X action with gradual servo movement. Pick up is Down, Grab, then Up; place down is Down, Release, then Up. Speed is from 1 to 100; use 0 to keep the current position.",
         "helpUrl": ""
     },
     {
@@ -446,13 +475,34 @@ Blockly.defineBlocksWithJsonArray([
         "helpUrl": ""
     },
     {
-        "type": "ibit_motor_stop",
-        "message0": "Motor Stop",
+        "type": "ibit_stop_moving",
+        "message0": "Stop Moving",
         "inputsInline": true,
         "previousStatement": null,
         "nextStatement": null,
         "colour": "#3498DB",
-        "tooltip": "",
+        "tooltip": "Stop both drive motors.",
+        "helpUrl": ""
+    },
+    {
+        "type": "ibit_motor_stop",
+        "message0": "Motor Stop %1",
+        "args0": [
+            {
+                "type": "field_dropdown",
+                "name": "motor",
+                "options": [
+                    ["1", "M1"],
+                    ["2", "M2"],
+                    ["ALL", "ALL"]
+                ]
+            }
+        ],
+        "inputsInline": true,
+        "previousStatement": null,
+        "nextStatement": null,
+        "colour": "#3498DB",
+        "tooltip": "Stop Motor 1, Motor 2, or both motors.",
         "helpUrl": ""
     },
     {
@@ -481,8 +531,88 @@ Blockly.defineBlocksWithJsonArray([
         "helpUrl": ""
     },
     {
+        "type": "ibit_v2ar_servo",
+        "message0": "Servo 180° CH %1 Degree %2",
+        "args0": [
+            {
+                "type": "field_dropdown",
+                "name": "ch",
+                "options": [
+                    ["1", "SV1"],
+                    ["2", "SV2"]
+                ]
+            },
+            {
+                "type": "input_value",
+                "name": "angle",
+                "check": "Number"
+            }
+        ],
+        "inputsInline": true,
+        "previousStatement": null,
+        "nextStatement": null,
+        "colour": "#4D5656",
+        "tooltip": "Set the angle of a standard positional servo from 0 to 180 degrees.",
+        "helpUrl": ""
+    },
+    {
+        "type": "ibit_servo_move",
+        "message0": "Servo 180° CH %1 Degree %2 Speed %3",
+        "args0": [
+            {
+                "type": "field_dropdown",
+                "name": "ch",
+                "options": [
+                    ["1", "SV1"],
+                    ["2", "SV2"]
+                ]
+            },
+            {
+                "type": "input_value",
+                "name": "angle",
+                "check": "Number"
+            },
+            {
+                "type": "input_value",
+                "name": "speed",
+                "check": "Number"
+            }
+        ],
+        "inputsInline": true,
+        "previousStatement": null,
+        "nextStatement": null,
+        "colour": "#4D5656",
+        "tooltip": "Move a standard 0–180 degree servo gradually. Speed is from 1 to 100; use 0 to keep the current position.",
+        "helpUrl": ""
+    },
+    {
+        "type": "ibit_servo_motor",
+        "message0": "Servo 360° CH %1 Speed %2",
+        "args0": [
+            {
+                "type": "field_dropdown",
+                "name": "ch",
+                "options": [
+                    ["1", "SV1"],
+                    ["2", "SV2"]
+                ]
+            },
+            {
+                "type": "input_value",
+                "name": "speed",
+                "check": "Number"
+            }
+        ],
+        "inputsInline": true,
+        "previousStatement": null,
+        "nextStatement": null,
+        "colour": "#D35400",
+        "tooltip": "Set a continuous-rotation 0–360 servo speed from -100 to 100. Use 0 to stop rotating.",
+        "helpUrl": ""
+    },
+    {
         "type": "ibit_servo_stop",
-        "message0": "Servo Stop %1",
+        "message0": "Servo Stop CH %1",
         "args0": [
             {
                 "type": "field_dropdown",
@@ -498,6 +628,41 @@ Blockly.defineBlocksWithJsonArray([
         "nextStatement": null,
         "colour": "#3498DB",
         "tooltip": "",
+        "helpUrl": ""
+    },
+    {
+        "type": "ibit_set_zx_sonar1m_adc",
+        "message0": "Set ZX-SONAR1M ADC Channel %1",
+        "args0": [
+            {
+                "type": "field_dropdown",
+                "name": "channel",
+                "options": [
+                    ["ADC0", "0"],
+                    ["ADC1", "1"],
+                    ["ADC2", "2"],
+                    ["ADC3", "3"],
+                    ["ADC4", "4"],
+                    ["ADC5", "5"],
+                    ["ADC6", "6"],
+                    ["ADC7", "7"]
+                ]
+            }
+        ],
+        "inputsInline": true,
+        "previousStatement": null,
+        "nextStatement": null,
+        "colour": "#3498DB",
+        "tooltip": "Select the ADC channel connected to the ZX-SONAR1M. The default is ADC0.",
+        "helpUrl": ""
+    },
+    {
+        "type": "ibit_zx_sonar1m_distance",
+        "message0": "ZX-SONAR1M Distance (cm)",
+        "inputsInline": true,
+        "output": "Number",
+        "colour": "#3498DB",
+        "tooltip": "Read the ZX-SONAR1M distance in centimetres by dividing the ADC value by 40 and rounding up.",
         "helpUrl": ""
     },
     {
@@ -526,3 +691,11 @@ Blockly.defineBlocksWithJsonArray([
         "helpUrl": ""
     }
 ]);
+
+// Keep the legacy Motor Stop behaviour for projects created before the
+// motor selector existed. Saved M1/M2 selections still override this value.
+var ibitMotorStopOriginalInit = Blockly.Blocks['ibit_motor_stop'].init;
+Blockly.Blocks['ibit_motor_stop'].init = function () {
+    ibitMotorStopOriginalInit.call(this);
+    this.setFieldValue('ALL', 'motor');
+};

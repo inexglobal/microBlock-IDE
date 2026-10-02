@@ -226,6 +226,8 @@ $("#create-project-btn").click(async () => {
     }
 
     $("#project-name").val(projectName);
+    projectFilePath = null;
+    saveAsFlag = false;
 
     $("#project-create-dialog").hide();
     NotifyS("New project " + projectName);

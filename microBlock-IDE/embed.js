@@ -17,6 +17,7 @@
 
 window.microBlock = {};
 window.microBlock.nextId = 1;
+window.microBlock.baseURL = new URL(".", document.currentScript.src);
 window.microBlock.reload = () => {
     for (let box of document.querySelectorAll(".microBlock-embed")) {
         box.setAttribute("data-id", window.microBlock.nextId);
@@ -35,7 +36,7 @@ window.microBlock.reload = () => {
         }
 
         let iframe = document.createElement("iframe");
-        iframe.setAttribute("src", `https://ide.microblock.app/?embed${optionURL}`);
+        iframe.setAttribute("src", `${window.microBlock.baseURL}?embed${optionURL}`);
         box.appendChild(iframe);
 
         window.microBlock.nextId++;

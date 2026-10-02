@@ -2,6 +2,33 @@ let serialPort = null;
 let writer = null, reader = null;
 let serialLastData = "";
 
+const updateConnectionStatus = (state, portLabel) => {
+    const statusText = {
+        connected: "Connected",
+        connecting: "Connecting",
+        disconnected: "Disconnected"
+    }[state] || "Disconnected";
+
+    $("#connection-indicator")
+        .removeClass("is-connected is-connecting is-disconnected")
+        .addClass(`is-${state}`)
+        .attr("aria-label", statusText)
+        .attr("title", statusText);
+    $("#port-name").text(portLabel || "DISCONNECT");
+};
+
+const updateFirmwareStatus = version => {
+    const firmwareStatus = $("#firmware-version-status");
+    if (version) {
+        $("#firmware-version").text(String(version));
+        firmwareStatus.show();
+        return;
+    }
+
+    $("#firmware-version").text("");
+    firmwareStatus.hide();
+};
+
 let RawREPLMode = false;
 
 let microPythonIsReadyNextCommand = () => {
@@ -9,9 +36,11 @@ let microPythonIsReadyNextCommand = () => {
 }
 
 let serialConnectWeb = async () => {
+    updateConnectionStatus("connecting", "CONNECTING");
     navigator.serial.ondisconnect = () => {
         NotifyW("Serial port disconnect");
-        $("#port-name").text(`DISCONNECT`);
+        updateConnectionStatus("disconnected", "DISCONNECT");
+        updateFirmwareStatus(null);
         statusLog("Serial port disconnect");
         $("#disconnect-device").hide();
         $("#connect-device").show();
@@ -26,6 +55,7 @@ let serialConnectWeb = async () => {
     try {
         serialPort = await navigator.serial.requestPort();
     } catch (e) {
+        updateConnectionStatus("disconnected", "DISCONNECT");
         NotifyE("You haven't selected port.");
         console.log(e);
         return false;
@@ -38,6 +68,7 @@ let serialConnectWeb = async () => {
             try {
                 await serialPort.open({ baudRate: 115200 });
             } catch (e) {
+                updateConnectionStatus("disconnected", "DISCONNECT");
                 NotifyE("Can't open serial port, some program has used this port ?");
                 console.log(e);
                 serialPort = null;
@@ -45,6 +76,7 @@ let serialConnectWeb = async () => {
                 return false;
             }
         } else {
+            updateConnectionStatus("disconnected", "DISCONNECT");
             NotifyE("Can't open serial port, some program has used this port ?");
             console.log("Error in try 2", e);
             serialPort = null;
@@ -55,7 +87,7 @@ let serialConnectWeb = async () => {
 
     NotifyS("Serial port connected");
     statusLog("Serial port connected");
-    $("#port-name").text(`CONNECTED`);
+    updateConnectionStatus("connected", "CONNECTED");
     if (dashboardIsReady) {
         dashboardWin.serialStatusUpdate("connected");
     }
@@ -67,6 +99,7 @@ let serialConnectWeb = async () => {
     if (!fitAddon) fitAddon = new FitAddon.FitAddon();
     term.loadAddon(fitAddon);
     term.open($("#terminal > section")[0]);
+    if (typeof globalThis.resetTerminalLog === "function") globalThis.resetTerminalLog();
     try {
         fitAddon.fit();
     } catch (e) {
@@ -76,10 +109,16 @@ let serialConnectWeb = async () => {
     serialPort.readable.pipeTo(new WritableStream({
         write(chunk) {
             if (!firmwareUpdateMode) {
+                let terminalText = "";
                 for (let key of chunk) {
-                    term.write(String.fromCharCode(key));
-                    serialLastData += String.fromCharCode(key);
+                    terminalText += String.fromCharCode(key);
                 }
+                if (typeof globalThis.appendTerminalOutput === "function") {
+                    globalThis.appendTerminalOutput(terminalText);
+                } else {
+                    term.write(terminalText);
+                }
+                serialLastData += terminalText;
                 if (serialLastData.length > 300) {
                     serialLastData = serialLastData.substring(serialLastData.length - 300, serialLastData.length);
                 }
@@ -135,10 +174,12 @@ let showPortSelect = () => {
 }
 
 let serialConnectElectron = async (portName = "", autoConnect = false, uploadMode = false) => {
+    updateConnectionStatus("connecting", "CONNECTING");
     if (!portName) {
         try {
             portName = await showPortSelect();
         } catch (e) {
+            updateConnectionStatus("disconnected", "DISCONNECT");
             NotifyE("You haven't selected port.");
             console.log(e);
             return false;
@@ -153,6 +194,7 @@ let serialConnectElectron = async (portName = "", autoConnect = false, uploadMod
             });
         }));
     } catch (e) {
+        updateConnectionStatus("disconnected", "DISCONNECT");
         if (!autoConnect) NotifyE("Can't open serial port, some program has used this port ?");
         console.log(e);
         serialPort = null;
@@ -162,7 +204,7 @@ let serialConnectElectron = async (portName = "", autoConnect = false, uploadMod
 
     NotifyS("Serial port connected");
     statusLog("Serial port connected");
-    $("#port-name").text(`CONNECTED (${portName})`);
+    updateConnectionStatus("connected", `CONNECTED (${portName})`);
     if (sharedObj.dashboardWin) {
         sharedObj.dashboardWin.webContents.send("serial-status", "connected");
     }
@@ -175,7 +217,8 @@ let serialConnectElectron = async (portName = "", autoConnect = false, uploadMod
 
     serialPort.on("close", () => {
         NotifyW("Serial port disconnect");
-        $("#port-name").text(`DISCONNECT`);
+        updateConnectionStatus("disconnected", "DISCONNECT");
+        updateFirmwareStatus(null);
         $("#disconnect-device").hide();
         $("#connect-device").show();
         if (sharedObj.dashboardWin) {
@@ -190,6 +233,7 @@ let serialConnectElectron = async (portName = "", autoConnect = false, uploadMod
     if (!fitAddon) fitAddon = new FitAddon.FitAddon();
     term.loadAddon(fitAddon);
     term.open($("#terminal > section")[0]);
+    if (typeof globalThis.resetTerminalLog === "function") globalThis.resetTerminalLog();
     try {
         fitAddon.fit();
     } catch (e) {
@@ -198,7 +242,11 @@ let serialConnectElectron = async (portName = "", autoConnect = false, uploadMod
 
     serialPort.on("data", (chunk) => {
         if (!firmwareUpdateMode) {
-            term.write(chunk);
+            if (typeof globalThis.appendTerminalOutput === "function") {
+                globalThis.appendTerminalOutput(chunk.toString());
+            } else {
+                term.write(chunk);
+            }
             serialLastData += chunk;
             if (serialLastData.length > 300) {
                 serialLastData = serialLastData.substring(serialLastData.length - 300, serialLastData.length);
@@ -808,13 +856,19 @@ class UploadViaMSC {
 const xmlToCode = xml_text => {
     const work_div = document.createElement("div");
     document.querySelector("body").appendChild(work_div);
-    const tmp_workspace = Blockly.inject(work_div, {});
-    Blockly.Xml.domToWorkspace(Blockly.utils.xml.textToDom(xml_text), tmp_workspace);
-    const { isArduinoPlatform } = boards.find(board => board.id === boardId);
-    const code = (!isArduinoPlatform) ? Blockly.Python.workspaceToCode(tmp_workspace) : Blockly.JavaScript.workspaceToCode(tmp_workspace);
-    work_div.remove();
+    const tmp_workspace = Blockly.inject(work_div, {
+        media: "blockly/media/",
+        sounds: false
+    });
 
-    return code;
+    try {
+        Blockly.Xml.domToWorkspace(Blockly.utils.xml.textToDom(xml_text), tmp_workspace);
+        const { isArduinoPlatform } = boards.find(board => board.id === boardId);
+        return (!isArduinoPlatform) ? Blockly.Python.workspaceToCode(tmp_workspace) : Blockly.JavaScript.workspaceToCode(tmp_workspace);
+    } finally {
+        tmp_workspace.dispose();
+        work_div.remove();
+    }
 }
 
 let realDeviceUploadFlow = async (code) => {
@@ -940,6 +994,7 @@ let realDeviceUploadFlow = async (code) => {
         if (boardId && !skipFirmwareUpgrade) {
             let info = await method.getFirmwareInfo();
             console.log("firmware info", info);
+            updateFirmwareStatus(info && info.version);
 
             let board = boards.find(board => board.id === boardId);
             if (typeof board.firmware[0].version !== "undefined") {
