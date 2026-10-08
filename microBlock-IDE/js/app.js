@@ -30,6 +30,10 @@ let updateBlockCategory = async () => {
     const board = boards.find(board => board?.id === boardId);
     const level = board?.level?.find(level => level.name === levelName);
     const toolboxTree = level?.blocks || blocksTree;
+    const commonCategoryBlocks = {
+        Control: ["controls_flow_statements"],
+        Operators: ["logic_boolean"]
+    };
     // blockTree
     for (let category of toolboxTree) {
         toolboxTextXML += `<category name="${category.name}" colour="${category.color}"${typeof category.blocks === "string" ? ` custom="${category.blocks}"` : ''}>`;
@@ -47,6 +51,14 @@ let updateBlockCategory = async () => {
                     } else {
                         console.warn(block, "undefined, forget add blocks_xxx.js ?");
                     }
+                }
+            }
+            // Board-specific toolboxes also expose the common control and logic blocks.
+            for (const blockType of commonCategoryBlocks[category.name] || []) {
+                const listed = category.blocks.some(block => block === blockType
+                    || block?.xml?.includes(`type="${blockType}"`));
+                if (!listed) {
+                    toolboxTextXML += `<block type="${blockType}"></block>`;
                 }
             }
         } else if (typeof category.blocks === "function") {
@@ -112,6 +124,13 @@ let updateBlockCategory = async () => {
     toolboxTextXML += `</xml>`;
 
     let toolboxXML = Blockly.utils.xml.textToDom(toolboxTextXML);
+    const generator = board?.isArduinoPlatform ? Blockly.JavaScript : Blockly.Python;
+    for (const element of toolboxXML.querySelectorAll("block, shadow")) {
+        const type = element.getAttribute("type");
+        if (!Blockly.Blocks[type] || typeof generator.forBlock[type] !== "function") {
+            element.remove();
+        }
+    }
 
     blocklyWorkspace.updateToolbox(toolboxXML);
     /* blocklyWorkspace.scrollbar.resize(); */
@@ -138,6 +157,10 @@ Blockly.triggleResize = function(e) {
     blocklyDiv.style.top = y + 'px';
     blocklyDiv.style.width = blocklyArea.offsetWidth + 'px';
     blocklyDiv.style.height = blocklyArea.offsetHeight + 'px';
+    // Size category icons using the workspace left after the header and footer.
+    if (blocklyArea.offsetHeight > 0) {
+        blocklyDiv.style.setProperty('--blockly-workspace-height', blocklyArea.offsetHeight + 'px');
+    }
     Blockly.svgResize(blocklyWorkspace);
 };
 
@@ -253,6 +276,8 @@ blocklyWorkspace = Blockly.inject(blocklyDiv, {
     renderer: localStorage.getItem("renderer") || "geras",
 });
 
+blocklyWorkspace.addChangeListener(Blockly.Events.validateBlockSupport);
+
 const addFlyoutBottomPadding = (workspace, paddingPixels = 80) => {
     const flyout = workspace.getFlyout();
     if (!flyout) return;
@@ -307,6 +332,40 @@ if (!(isEmbed && embedOption.blockOnly)) {
 
 window.addEventListener('resize', Blockly.triggleResize, false);
 Blockly.triggleResize();
+
+const mainPane = document.querySelector(".page > .main");
+let mainPaneResizeFrame = 0;
+
+const updateMainPaneResponsiveLayout = width => {
+    if (!mainPane || width <= 0) return;
+
+    mainPane.classList.toggle("main-layout-compact", width < 900);
+    mainPane.classList.toggle("main-layout-narrow", width < 620);
+    mainPane.classList.toggle("main-layout-tiny", width < 430);
+
+    cancelAnimationFrame(mainPaneResizeFrame);
+    mainPaneResizeFrame = requestAnimationFrame(() => {
+        Blockly.triggleResize();
+        if (typeof editor !== "undefined" && editor) editor.layout();
+    });
+};
+
+if (typeof ResizeObserver !== "undefined" && mainPane) {
+    const mainPaneResizeObserver = new ResizeObserver(entries => {
+        if (entries.length) {
+            updateMainPaneResponsiveLayout(mainPane.getBoundingClientRect().width);
+        }
+    });
+    mainPaneResizeObserver.observe(mainPane);
+    mainPaneResizeObserver.observe(blocklyArea);
+    updateMainPaneResponsiveLayout(mainPane.getBoundingClientRect().width);
+} else {
+    const updateMainPaneFromWindow = () => {
+        if (mainPane) updateMainPaneResponsiveLayout(mainPane.getBoundingClientRect().width);
+    };
+    window.addEventListener("resize", updateMainPaneFromWindow);
+    updateMainPaneFromWindow();
+}
 
 /** Override Blockly.alert() with custom implementation. */
 Blockly.dialog.setAlert((message, callback) => {

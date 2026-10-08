@@ -59,7 +59,7 @@ if (isElectron) {
                     }
                 },
                 {
-                    label: "Export Project",
+                    label: "Export",
                     click: () => $("#code-share").click()
                 },
                 { type: 'separator' },
@@ -144,7 +144,7 @@ if (isElectron) {
                 },
                 { type: 'separator' },
                 {
-                    label: 'Open Terminal',
+                    label: 'Toggle Terminal',
                     click: () => $("#open-terminal").click()
                 },
                 {

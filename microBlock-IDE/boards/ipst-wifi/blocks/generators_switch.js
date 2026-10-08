@@ -22,7 +22,7 @@ Blockly.Python.forBlock['switch_get_value'] = function (block) {
 Blockly.Python.forBlock['switch_on_press'] = function(block) {
     Blockly.Python.definitions_['import_switch'] = 'import switch';
 
-    var statements_callback = Blockly.Python.statementToCode(block, 'callback');
+    var statements_callback = Blockly.Python.statementToCode(block, 'callback') || Blockly.Python.PASS;
 
     // -----------------------------
     var globals = [];
@@ -60,7 +60,7 @@ Blockly.Python.forBlock['switch_on_press'] = function(block) {
 Blockly.Python.forBlock['switch_on_release'] = function(block) {
     Blockly.Python.definitions_['import_switch'] = 'import switch';
 
-    var statements_callback = Blockly.Python.statementToCode(block, 'callback');
+    var statements_callback = Blockly.Python.statementToCode(block, 'callback') || Blockly.Python.PASS;
 
     // -----------------------------
     var globals = [];

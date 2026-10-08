@@ -1,8 +1,8 @@
 Blockly.JavaScript.forBlock['buzzer_tone'] = function(block) {
     Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
-    var value_freq = Blockly.JavaScript.valueToCode(block, 'freq', Blockly.JavaScript.ORDER_ATOMIC);
-    var value_duration = Blockly.JavaScript.valueToCode(block, 'duration', Blockly.JavaScript.ORDER_ATOMIC);
+    var value_freq = Blockly.JavaScript.valueToCode(block, 'freq', Blockly.JavaScript.ORDER_ATOMIC) || "0";
+    var value_duration = Blockly.JavaScript.valueToCode(block, 'duration', Blockly.JavaScript.ORDER_ATOMIC) || "0";
 
     var code = `sound(${value_freq}, ${value_duration} * 1000);\n`;
     return code;
@@ -11,7 +11,7 @@ Blockly.JavaScript.forBlock['buzzer_tone'] = function(block) {
 Blockly.JavaScript.forBlock['buzzer_notes'] = function(block) {
     Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
-    var value_notes = Blockly.JavaScript.valueToCode(block, 'notes', Blockly.JavaScript.ORDER_ATOMIC);
+    var value_notes = Blockly.JavaScript.valueToCode(block, 'notes', Blockly.JavaScript.ORDER_ATOMIC) || "String(\"\")";
     var dropdown_duration = block.getFieldValue('duration');
     
     const notes = value_notes.substring(2, value_notes.length - 2).split(" ");
@@ -72,7 +72,7 @@ Blockly.JavaScript.forBlock['buzzer_notes'] = function(block) {
 Blockly.JavaScript.forBlock['buzzer_volume'] = function(block) {
     Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
-    var value_level = Blockly.JavaScript.valueToCode(block, 'level', Blockly.JavaScript.ORDER_ATOMIC);
+    var value_level = Blockly.JavaScript.valueToCode(block, 'level', Blockly.JavaScript.ORDER_ATOMIC) || "0";
     var code = `buzzer.volume = ${value_level}\n`;
     return code;
 };

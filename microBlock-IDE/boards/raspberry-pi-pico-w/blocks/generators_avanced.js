@@ -19,7 +19,7 @@ Blockly.Python.forBlock['dht_read'] = function(block) {
     '    return [ -999, -999 ]']);
 
     var dropdown_type = block.getFieldValue('type');
-    var value_pin = Blockly.Python.valueToCode(block, 'pin', Blockly.Python.ORDER_ATOMIC);
+    var value_pin = Blockly.Python.valueToCode(block, 'pin', Blockly.Python.ORDER_ATOMIC) || "0";
     var dropdown_valueindex = block.getFieldValue('valueIndex');
     var code = `${functionName}(${dropdown_type}, ${value_pin})[${dropdown_valueindex}]`;
     return [code, Blockly.Python.ORDER_NONE];
@@ -45,7 +45,7 @@ Blockly.Python.forBlock['ds18x20_read'] = function(block) {
       '    return ds.read_temp(rom)',
       '  return 0']);
   
-    var value_pin = Blockly.Python.valueToCode(block, 'pin', Blockly.Python.ORDER_ATOMIC);
+    var value_pin = Blockly.Python.valueToCode(block, 'pin', Blockly.Python.ORDER_ATOMIC) || "0";
     var code = `${functionName}(${value_pin})`;
     return [code, Blockly.Python.ORDER_NONE];
 };

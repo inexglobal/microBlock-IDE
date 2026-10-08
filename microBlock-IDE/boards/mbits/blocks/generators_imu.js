@@ -68,7 +68,7 @@ Blockly.Python.forBlock['imu_on_gesture'] = function(block) {
     Blockly.Python.definitions_['import_imu'] = 'import imu';
 
     var dropdown_gesture = block.getFieldValue('gesture');
-    var statements_callback = Blockly.Python.statementToCode(block, 'callback');
+    var statements_callback = Blockly.Python.statementToCode(block, 'callback') || Blockly.Python.PASS;
 
     // -----------------------------
     var globals = [];

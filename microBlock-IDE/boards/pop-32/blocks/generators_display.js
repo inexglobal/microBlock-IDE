@@ -1,9 +1,9 @@
 Blockly.JavaScript.forBlock['display_draw_text'] = function(block) {
   Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
   
-  var value_text = Blockly.JavaScript.valueToCode(block, 'text', Blockly.JavaScript.ORDER_ATOMIC);
-  var value_x = Blockly.JavaScript.valueToCode(block, 'x', Blockly.JavaScript.ORDER_ATOMIC);
-  var value_y = Blockly.JavaScript.valueToCode(block, 'y', Blockly.JavaScript.ORDER_ATOMIC);
+  var value_text = Blockly.JavaScript.valueToCode(block, 'text', Blockly.JavaScript.ORDER_ATOMIC) || "String(\"\")";
+  var value_x = Blockly.JavaScript.valueToCode(block, 'x', Blockly.JavaScript.ORDER_ATOMIC) || "0";
+  var value_y = Blockly.JavaScript.valueToCode(block, 'y', Blockly.JavaScript.ORDER_ATOMIC) || "0";
 
   var code = `oled.text(${value_x}, ${value_y}, ${value_text}.c_str());\n`;
   return code;
@@ -12,10 +12,10 @@ Blockly.JavaScript.forBlock['display_draw_text'] = function(block) {
 Blockly.JavaScript.forBlock['display_draw_line'] = function(block) {
   Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
-  var value_x1 = Blockly.JavaScript.valueToCode(block, 'x1', Blockly.JavaScript.ORDER_ATOMIC);
-  var value_y1 = Blockly.JavaScript.valueToCode(block, 'y1', Blockly.JavaScript.ORDER_ATOMIC);
-  var value_x2 = Blockly.JavaScript.valueToCode(block, 'x2', Blockly.JavaScript.ORDER_ATOMIC);
-  var value_y2 = Blockly.JavaScript.valueToCode(block, 'y2', Blockly.JavaScript.ORDER_ATOMIC);
+  var value_x1 = Blockly.JavaScript.valueToCode(block, 'x1', Blockly.JavaScript.ORDER_ATOMIC) || "0";
+  var value_y1 = Blockly.JavaScript.valueToCode(block, 'y1', Blockly.JavaScript.ORDER_ATOMIC) || "0";
+  var value_x2 = Blockly.JavaScript.valueToCode(block, 'x2', Blockly.JavaScript.ORDER_ATOMIC) || "0";
+  var value_y2 = Blockly.JavaScript.valueToCode(block, 'y2', Blockly.JavaScript.ORDER_ATOMIC) || "0";
 
   var code = `oled.drawLine(${value_x1}, ${value_y1}, ${value_x2}, ${value_y2}, WHITE);\n`;
   return code;
@@ -24,10 +24,10 @@ Blockly.JavaScript.forBlock['display_draw_line'] = function(block) {
 Blockly.JavaScript.forBlock['display_draw_rect'] = function(block) {
   Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
-  var value_x = Blockly.JavaScript.valueToCode(block, 'x', Blockly.JavaScript.ORDER_ATOMIC);
-  var value_y = Blockly.JavaScript.valueToCode(block, 'y', Blockly.JavaScript.ORDER_ATOMIC);
-  var value_width = Blockly.JavaScript.valueToCode(block, 'width', Blockly.JavaScript.ORDER_ATOMIC);
-  var value_height = Blockly.JavaScript.valueToCode(block, 'height', Blockly.JavaScript.ORDER_ATOMIC);
+  var value_x = Blockly.JavaScript.valueToCode(block, 'x', Blockly.JavaScript.ORDER_ATOMIC) || "0";
+  var value_y = Blockly.JavaScript.valueToCode(block, 'y', Blockly.JavaScript.ORDER_ATOMIC) || "0";
+  var value_width = Blockly.JavaScript.valueToCode(block, 'width', Blockly.JavaScript.ORDER_ATOMIC) || "0";
+  var value_height = Blockly.JavaScript.valueToCode(block, 'height', Blockly.JavaScript.ORDER_ATOMIC) || "0";
   var dropdown_fill = block.getFieldValue('fill');
 
   var code = `oled.${(+dropdown_fill) ? 'fillRect' : 'drawRect'}(${value_x}, ${value_y}, ${value_width}, ${value_height}, WHITE);\n`;
@@ -58,9 +58,9 @@ Blockly.JavaScript.forBlock['display_show'] = function(block) {
 Blockly.JavaScript.forBlock['display_draw_bitmap'] = function(block) {
   Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
-  var bitmap_image = block.getFieldValue('image');
-  var value_x = Blockly.JavaScript.valueToCode(block, 'x', Blockly.JavaScript.ORDER_ATOMIC);
-  var value_y = Blockly.JavaScript.valueToCode(block, 'y', Blockly.JavaScript.ORDER_ATOMIC);
+  var bitmap_image = block.getFieldValue('image') || "\\x01\\x01\\x00";
+  var value_x = Blockly.JavaScript.valueToCode(block, 'x', Blockly.JavaScript.ORDER_ATOMIC) || "0";
+  var value_y = Blockly.JavaScript.valueToCode(block, 'y', Blockly.JavaScript.ORDER_ATOMIC) || "0";
   
   const width = parseInt(bitmap_image.substring(2, 4), 16);
   const height = parseInt(bitmap_image.substring(6, 8), 16);

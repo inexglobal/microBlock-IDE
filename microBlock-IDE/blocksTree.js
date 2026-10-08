@@ -98,6 +98,7 @@ let blocksTree = [
             },
             "controls_wait_until",
             "controls_whileUntil",
+            "controls_flow_statements",
         ]
     },
     {
@@ -189,6 +190,7 @@ let blocksTree = [
                     </block>
                 `
             },
+            "logic_boolean",
             {
                 xml: `
                     <block type="logic_compare">

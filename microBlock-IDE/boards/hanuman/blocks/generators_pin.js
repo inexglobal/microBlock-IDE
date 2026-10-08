@@ -11,7 +11,7 @@ Blockly.JavaScript.forBlock['pin_mode'] = function (block) {
 Blockly.JavaScript.forBlock['pin_digital_write'] = function (block) {
     Blockly.JavaScript.definitions_['include']['Hanuman.h'] = '#include <Hanuman.h>';
 
-    var value_value = Blockly.JavaScript.valueToCode(block, 'value', Blockly.JavaScript.ORDER_ATOMIC);
+    var value_value = Blockly.JavaScript.valueToCode(block, 'value', Blockly.JavaScript.ORDER_ATOMIC) || "0";
     var dropdown_pin = block.getFieldValue('pin');
 
     var code = `out(${dropdown_pin}, ${value_value});\n`;
@@ -37,7 +37,7 @@ Blockly.JavaScript.forBlock['pin_analog_read'] = function (block) {
 };
 
 Blockly.JavaScript.forBlock['pin_analog_write'] = function (block) {
-    var value_value = Blockly.JavaScript.valueToCode(block, 'value', Blockly.JavaScript.ORDER_ATOMIC);
+    var value_value = Blockly.JavaScript.valueToCode(block, 'value', Blockly.JavaScript.ORDER_ATOMIC) || "0";
     var dropdown_pin = block.getFieldValue('pin');
 
     var code = `analogWrite(${dropdown_pin}, ${value_value});\n`;
@@ -53,10 +53,15 @@ Blockly.JavaScript.forBlock['pin_attach_interrupt'] = function (block) {
     return code;
 };
 
+Blockly.JavaScript.forBlock['pin_detach_interrupt'] = function (block) {
+    var dropdown_pin = block.getFieldValue('pin');
+    return `detachInterrupt(digitalPinToInterrupt(${dropdown_pin}));\n`;
+};
+
 Blockly.JavaScript.forBlock['pin_pulse_in'] = function (block) {
     var dropdown_value = block.getFieldValue('value');
     var dropdown_pin = block.getFieldValue('pin');
-    var value_timeout = Blockly.JavaScript.valueToCode(block, 'timeout', Blockly.JavaScript.ORDER_ATOMIC);
+    var value_timeout = Blockly.JavaScript.valueToCode(block, 'timeout', Blockly.JavaScript.ORDER_ATOMIC) || "0";
 
     var code = `pulseIn(${dropdown_pin}, ${dropdown_value}, ${value_timeout})`;
     return [code, Blockly.JavaScript.ORDER_NONE];
@@ -72,7 +77,7 @@ Blockly.JavaScript.forBlock['pin_shift_in'] = function (block) {
 };
 
 Blockly.JavaScript.forBlock['pin_shift_out'] = function (block) {
-    var value_value = Blockly.JavaScript.valueToCode(block, 'value', Blockly.JavaScript.ORDER_ATOMIC);
+    var value_value = Blockly.JavaScript.valueToCode(block, 'value', Blockly.JavaScript.ORDER_ATOMIC) || "0";
     var dropdown_data_pin = block.getFieldValue('data_pin');
     var dropdown_clock_pin = block.getFieldValue('clock_pin');
     var dropdown_bit_order = block.getFieldValue('bit_order');

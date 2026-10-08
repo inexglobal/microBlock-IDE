@@ -6,6 +6,47 @@ let addBoard = board => boards.push(board);
 
 let boardIdSelect = null;
 
+// Remove only registrations still owned by the previous board. Extensions may
+// replace or decorate them after loading, so preserve those later changes.
+let previousBoardRegistrations = [];
+const snapshotBoardRegistration = (registry, key) => {
+    const hasValue = Object.prototype.hasOwnProperty.call(registry, key);
+    const value = registry[key];
+    const properties = value && (typeof value === "object" || typeof value === "function")
+        ? Object.getOwnPropertyDescriptors(value) : null;
+    return { hasValue, value, properties };
+};
+const sameBoardRegistration = (left, right) => {
+    if (left.hasValue !== right.hasValue || left.value !== right.value) return false;
+    if (!left.properties || !right.properties) return left.properties === right.properties;
+    const keys = Reflect.ownKeys(left.properties);
+    if (keys.length !== Reflect.ownKeys(right.properties).length) return false;
+    return keys.every(key => {
+        const first = left.properties[key];
+        const second = right.properties[key];
+        return second && first.value === second.value && first.get === second.get && first.set === second.set
+            && first.writable === second.writable && first.enumerable === second.enumerable
+            && first.configurable === second.configurable;
+    });
+};
+const restorePreviousBoardRegistrations = () => {
+    for (const { registry, key, before, loaded } of previousBoardRegistrations) {
+        if (!sameBoardRegistration(snapshotBoardRegistration(registry, key), loaded)) continue;
+        if (before.hasValue) {
+            if (before.value === loaded.value && before.properties) {
+                for (const property of Reflect.ownKeys(loaded.properties)) {
+                    if (!Object.prototype.hasOwnProperty.call(before.properties, property)) delete before.value[property];
+                }
+                Object.defineProperties(before.value, before.properties);
+            }
+            registry[key] = before.value;
+        } else {
+            delete registry[key];
+        }
+    }
+    previousBoardRegistrations = [];
+};
+
 $("#new-project").click(async () => {
     if (!(await NotifyConfirm("All blocks will lost. Are you sure of new project ?"))) {
         return;
@@ -98,6 +139,10 @@ let loadBoard = async () => {
         return;
     }
     const board = boards.find(board => board.id === boardId);
+    restorePreviousBoardRegistrations();
+    const registries = [Blockly.Blocks, Blockly.Python.forBlock, Blockly.JavaScript.forBlock];
+    const beforeRegistrations = registries.map(registry => new Map(Reflect.ownKeys(registry)
+        .map(key => [key, snapshotBoardRegistration(registry, key)])));
     let scripts = [ ];
     scripts = scripts.concat(board.script);
     scripts = scripts.concat(board.blocks);
@@ -123,6 +168,17 @@ let loadBoard = async () => {
         }
     }
 
+    registries.forEach((registry, index) => {
+        const before = beforeRegistrations[index];
+        for (const key of new Set([...before.keys(), ...Reflect.ownKeys(registry)])) {
+            const prior = before.get(key) || { hasValue: false, value: undefined, properties: null };
+            const loaded = snapshotBoardRegistration(registry, key);
+            if (!sameBoardRegistration(prior, loaded)) {
+                previousBoardRegistrations.push({ registry, key, before: prior, loaded });
+            }
+        }
+    });
+
     for (let fPath of board.css) {
         let link = document.createElement('link');
         link.rel = "stylesheet";
@@ -147,6 +203,8 @@ let loadBoard = async () => {
     if (typeof board?.onLoad === "function") {
         await board.onLoad(blocklyWorkspace, board);
     }
+
+    Blockly.Events.refreshBlockValidation(blocklyWorkspace);
 
     if (board?.isArduinoPlatform) {
         if (+localStorage.getItem("show-console-board-initial") !== -1) {

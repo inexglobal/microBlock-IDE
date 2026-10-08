@@ -1,5 +1,5 @@
 function switchBuildCallbackFunction(block, functionNameBase) {
-    var statements_callback = Blockly.Python.statementToCode(block, 'callback');
+    var statements_callback = Blockly.Python.statementToCode(block, 'callback') || Blockly.Python.PASS;
 
     // Prevent invalid Python when callback body is empty.
     if (!statements_callback) {

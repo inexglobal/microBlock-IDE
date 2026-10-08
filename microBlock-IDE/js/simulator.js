@@ -16,10 +16,7 @@ let switchModeTo = (mode, firstTime) => {
     if (nowMode !== mode) {
         if (nowMode === MODE_REAL_DEVICE) {
             if (terminalShowFlag) {
-                $("#close-terminal").click();
-                setTimeout(_ => {
-                    terminalShowFlag = true;
-                }, 100);
+                closeTerminalPanel(true);
             }
         } else if (nowMode === MODE_SIMULATOR) {
             $("#simulator").css("display", "none");
@@ -39,13 +36,11 @@ let switchModeTo = (mode, firstTime) => {
 
     if (mode === MODE_REAL_DEVICE) {
         if (terminalShowFlag) {
-            $("#open-terminal").click();
+            openTerminalPanel();
         }
     } else if (mode === MODE_SIMULATOR) {
         $(domSimulatorIframe).attr("src", `${rootPath}/boards/${board.id}/${board.simulator.index}`);
         $("#simulator").css("display", "flex");
-        $("#terminal-h-resize").css("display", "block");
-        $("#terminal-h-resize").css("right", $("#simulator").width());
         if (isElectron) {
             if (serialPort) {
                 serialPort.close();
@@ -66,6 +61,7 @@ let switchModeTo = (mode, firstTime) => {
         $("#switch-to-sim-mode").css("display", "none");
     }
 
+    updatePanelResizeHandles();
     Blockly.triggleResize();
     if (editor) editor.layout();
     if (fitAddon) {

@@ -29,7 +29,7 @@ Blockly.Python.forBlock['switch_on_press'] = function(block) {
     Blockly.Python.definitions_['import_switch'] = 'import switch';
 
     var dropdown_pin = block.getFieldValue('pin');
-    var statements_callback = Blockly.Python.statementToCode(block, 'callback');
+    var statements_callback = Blockly.Python.statementToCode(block, 'callback') || Blockly.Python.PASS;
 
     // -----------------------------
     var globals = [];
@@ -68,7 +68,7 @@ Blockly.Python.forBlock['switch_on_release'] = function(block) {
     Blockly.Python.definitions_['import_switch'] = 'import switch';
 
     var dropdown_pin = block.getFieldValue('pin');
-    var statements_callback = Blockly.Python.statementToCode(block, 'callback');
+    var statements_callback = Blockly.Python.statementToCode(block, 'callback') || Blockly.Python.PASS;
 
     // -----------------------------
     var globals = [];
@@ -107,7 +107,7 @@ Blockly.Python.forBlock['switch_on_pressed'] = function(block) {
     Blockly.Python.definitions_['import_switch'] = 'import switch';
 
     var dropdown_pin = block.getFieldValue('pin');
-    var statements_callback = Blockly.Python.statementToCode(block, 'callback');
+    var statements_callback = Blockly.Python.statementToCode(block, 'callback') || Blockly.Python.PASS;
 
     // -----------------------------
     var globals = [];

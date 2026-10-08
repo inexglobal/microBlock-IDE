@@ -1,10 +1,27 @@
 const MINIMUM_NOTE_WIDTH = 300;
 
-$("#close-note").click(() => {
+const updateNoteToggleButton = () => {
+    const isOpen = $("#note").css("display") !== "none";
+    const button = $("#open-note");
+    const label = isOpen ? "Close Note" : "Open Note";
+    button.toggleClass("is-active", isOpen);
+    button.attr("aria-pressed", String(isOpen));
+    button.attr("aria-expanded", String(isOpen));
+    button.attr("aria-label", label);
+    button.attr("data-tippy-content", label);
+    if (button[0]?._tippy) button[0]._tippy.setContent(label);
+};
+
+const closeNotePanel = () => {
     $("#note").css("display", "none");
-    $("#note-h-resize").hide();
+    updatePanelResizeHandles();
     Blockly.triggleResize();
-});
+    if (editor) editor.layout();
+    updateNoteToggleButton();
+};
+
+$("#close-note").click(() => closeNotePanel());
+updateNoteToggleButton();
 
 const saveNote = e => {
     if (e) {
@@ -74,6 +91,11 @@ const updateEvent = () => {
 }
 
 $("#open-note").click(() => {
+    if ($("#note").css("display") !== "none") {
+        closeNotePanel();
+        return;
+    }
+
     let html = "";
     const note_list = JSON.parse(fs.read("/note.json") || "[]");
     for (const note_item of note_list) {
@@ -104,36 +126,14 @@ $("#open-note").click(() => {
     $("#note-box-list").html(html);
     updateEvent();
     $("#note").css("display", "flex");
-    $("#note-h-resize").css("right", $("#note").width());
-    $("#note-h-resize").show();
+    updatePanelResizeHandles();
+    Blockly.triggleResize();
+    if (editor) editor.layout();
+    updateNoteToggleButton();
 });
 
-$("#note-h-resize").bind('mousedown', function(event){
-    offsetX = event.pageX - ($(document).width() - +$("#note-h-resize").css("right").replace("px", ""));
-    offsetX = $(document).width() + offsetX;
-    $("#note-h-resize").addClass("active");
-
-    $(document).bind('mousemove', function(event){
-        let rightPos = offsetX - event.pageX;
-        rightPos = Math.max(rightPos, MINIMUM_NOTE_WIDTH);
-        $("#note-h-resize").css("right", rightPos - 14);
-    }).bind('mouseup', function(event){
-        $(this).unbind('mousemove');
-        $(this).unbind('mouseup');
-
-        $("#note").width(+$("#note-h-resize").css("right").replace("px", ""));
-
-        Blockly.triggleResize();
-        if (editor) editor.layout();
-        if (fitAddon) {
-            setTimeout(() => {
-                fitAddon.fit();
-                fitAddon.fit();
-            }, 10);
-        }
-
-        $("#note-h-resize").removeClass("active");
-    });
+bindPanelResizeHandle("note-h-resize", () => document.getElementById("note"), {
+    minimumWidth: () => MINIMUM_NOTE_WIDTH
 });
 
 $("#new-note").click(() => {

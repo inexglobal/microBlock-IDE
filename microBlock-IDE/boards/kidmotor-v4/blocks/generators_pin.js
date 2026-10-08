@@ -1,7 +1,7 @@
 Blockly.Python.forBlock['pin_digital_write'] = function (block) {
     Blockly.Python.definitions_['from_machine_import_pin'] = 'from machine import Pin';
 
-    var value_value = Blockly.Python.valueToCode(block, 'value', Blockly.Python.ORDER_ATOMIC);
+    var value_value = Blockly.Python.valueToCode(block, 'value', Blockly.Python.ORDER_ATOMIC) || "0";
     var dropdown_pin = block.getFieldValue('pin');
 
     var code = `Pin(${dropdown_pin}, Pin.OUT).value(${value_value})\n`;
@@ -60,7 +60,7 @@ Blockly.Python.forBlock['pin_analog_write'] = function (block) {
         '  pwm.freq(1000)',
         '  pwm.duty_u16(int(duty / 1023 * 65535))']);
 
-    var value_value = Blockly.Python.valueToCode(block, 'value', Blockly.Python.ORDER_ATOMIC);
+    var value_value = Blockly.Python.valueToCode(block, 'value', Blockly.Python.ORDER_ATOMIC) || "0";
     var dropdown_pin = block.getFieldValue('pin');
     var code = `${functionName}(${dropdown_pin}, ${value_value})\n`;
     return code;

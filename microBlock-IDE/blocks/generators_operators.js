@@ -1,20 +1,20 @@
 Blockly.Python.forBlock['math_map'] = function (block) {
-    var value_value = Blockly.Python.valueToCode(block, 'value', Blockly.Python.ORDER_ATOMIC);
-    var value_from_min = Blockly.Python.valueToCode(block, 'from_min', Blockly.Python.ORDER_ATOMIC);
-    var value_from_max = Blockly.Python.valueToCode(block, 'from_max', Blockly.Python.ORDER_ATOMIC);
-    var value_to_min = Blockly.Python.valueToCode(block, 'to_min', Blockly.Python.ORDER_ATOMIC);
-    var value_to_max = Blockly.Python.valueToCode(block, 'to_max', Blockly.Python.ORDER_ATOMIC);
+    var value_value = Blockly.Python.valueToCode(block, 'value', Blockly.Python.ORDER_ATOMIC) || '0';
+    var value_from_min = Blockly.Python.valueToCode(block, 'from_min', Blockly.Python.ORDER_ATOMIC) || '0';
+    var value_from_max = Blockly.Python.valueToCode(block, 'from_max', Blockly.Python.ORDER_ATOMIC) || '1';
+    var value_to_min = Blockly.Python.valueToCode(block, 'to_min', Blockly.Python.ORDER_ATOMIC) || '0';
+    var value_to_max = Blockly.Python.valueToCode(block, 'to_max', Blockly.Python.ORDER_ATOMIC) || '1';
 
     var code = `((${value_value} - ${value_from_min}) * (${value_to_max} - ${value_to_min}) / (${value_from_max} - ${value_from_min}) + ${value_to_min})`;
     return [code, Blockly.Python.ORDER_NONE];
 };
 
 Blockly.JavaScript.forBlock['math_map'] = function (block) {
-    var value_value = Blockly.JavaScript.valueToCode(block, 'value', Blockly.JavaScript.ORDER_ATOMIC);
-    var value_from_min = Blockly.JavaScript.valueToCode(block, 'from_min', Blockly.JavaScript.ORDER_ATOMIC);
-    var value_from_max = Blockly.JavaScript.valueToCode(block, 'from_max', Blockly.JavaScript.ORDER_ATOMIC);
-    var value_to_min = Blockly.JavaScript.valueToCode(block, 'to_min', Blockly.JavaScript.ORDER_ATOMIC);
-    var value_to_max = Blockly.JavaScript.valueToCode(block, 'to_max', Blockly.JavaScript.ORDER_ATOMIC);
+    var value_value = Blockly.JavaScript.valueToCode(block, 'value', Blockly.JavaScript.ORDER_ATOMIC) || '0';
+    var value_from_min = Blockly.JavaScript.valueToCode(block, 'from_min', Blockly.JavaScript.ORDER_ATOMIC) || '0';
+    var value_from_max = Blockly.JavaScript.valueToCode(block, 'from_max', Blockly.JavaScript.ORDER_ATOMIC) || '1';
+    var value_to_min = Blockly.JavaScript.valueToCode(block, 'to_min', Blockly.JavaScript.ORDER_ATOMIC) || '0';
+    var value_to_max = Blockly.JavaScript.valueToCode(block, 'to_max', Blockly.JavaScript.ORDER_ATOMIC) || '1';
 
     var code = `map(${value_value}, ${value_from_min}, ${value_from_max}, ${value_to_min}, ${value_to_max})`;
     return [code, Blockly.JavaScript.ORDER_NONE];
@@ -28,19 +28,13 @@ Blockly.JavaScript.forBlock['logic_compare'] = function (block) {
     let argument0 = Blockly.JavaScript.valueToCode(block, 'A', order);
     let argument1 = Blockly.JavaScript.valueToCode(block, 'B', order);
 
-    const getTypeValue = valueName => {
-        if (block.childBlocks_.length >= 1) {
-            const child = block.getInputTargetBlock(valueName);
-            return child?.outputConnection?.check[0];
-        }
-        return NaN;
-    };
+    const getTypeValue = valueName => block.getInputTargetBlock(valueName)?.outputConnection?.getCheck()?.[0];
 
     if ((!argument0) || (!argument1)) {
         const type0 = getTypeValue("A");
         const type1 = getTypeValue("B");
 
-        if ([type0, type1].indexOf("String")) {
+        if ([type0, type1].includes("String")) {
             if (!argument0) {
                 argument0 = '""';
             }
@@ -114,28 +108,27 @@ Blockly.JavaScript.forBlock['math_trig'] = function (block) {
     var code;
     var arg = Blockly.JavaScript.valueToCode(block, 'NUM', Blockly.JavaScript.ORDER_ASSIGNMENT) || '0';
 
+    if ([ 'ASIN', 'ACOS', 'ATAN' ].includes(operator)) {
+        code = operator.toLowerCase() + '(' + arg + ') * 180.0 / PI';
+        return [code, Blockly.JavaScript.ORDER_DIVISION];
+    }
     code = operator.toLowerCase() + '(' + arg + ' * PI / 180.0)';
-    /*
-    switch (operator) {
-        case 'SIN':
-            code = 'sin(' + arg + ' * PI/180.0)';
-            break;
-        case 'COS':
-            code = 'cos(' + arg + ' * PI/180.0)';
-            break;
-        case 'TAN':
-            code = 'tan(' + arg + ' * PI/180.0)';
-            break;
-        case 'ASIN':
-            code = 'asin(' + arg + ') * 180.0 / PI';
-            break;
-        case 'ACOS':
-            code = 'acos(' + arg + ') * 180.0 / PI';
-            break;
-        case 'ATAN':
-            code = 'atan(' + arg + ') * 180.0 / PI';
-            break;
-    }*/
-
-    return [code, Blockly.JavaScript.ORDER_ATOMIC];
+    return [code, Blockly.JavaScript.ORDER_FUNCTION_CALL];
 }
+
+// The Arduino backend uses C++ math functions rather than JavaScript's Math object.
+const microBlockArithmeticGenerator = Blockly.JavaScript.forBlock['math_arithmetic'];
+Blockly.JavaScript.forBlock['math_arithmetic'] = function (block, generator) {
+    if (block.getFieldValue('OP') !== 'POWER') {
+        return microBlockArithmeticGenerator(block, generator);
+    }
+    const left = generator.valueToCode(block, 'A', generator.ORDER_COMMA) || '0';
+    const right = generator.valueToCode(block, 'B', generator.ORDER_COMMA) || '0';
+    return [`pow(${left}, ${right})`, generator.ORDER_FUNCTION_CALL];
+};
+
+Blockly.JavaScript.forBlock['math_modulo'] = function (block, generator) {
+    const dividend = generator.valueToCode(block, 'DIVIDEND', generator.ORDER_COMMA) || '0';
+    const divisor = generator.valueToCode(block, 'DIVISOR', generator.ORDER_COMMA) || '1';
+    return [`fmod(${dividend}, ${divisor})`, generator.ORDER_FUNCTION_CALL];
+};

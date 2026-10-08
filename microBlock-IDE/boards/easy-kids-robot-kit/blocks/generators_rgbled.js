@@ -3,8 +3,8 @@ Blockly.Python.forBlock['rgbled_set_color'] = function(block) {
 
   Blockly.Python.definitions_[`rom_board_import_rgbled_${dropdown_pin}`] = `from board import rgbled_${dropdown_pin}`;
 
-  var value_n = Blockly.Python.valueToCode(block, 'n', Blockly.Python.ORDER_ATOMIC);
-  var value_color = Blockly.Python.valueToCode(block, 'color', Blockly.Python.ORDER_ATOMIC);
+  var value_n = Blockly.Python.valueToCode(block, 'n', Blockly.Python.ORDER_ATOMIC) || "0";
+  var value_color = Blockly.Python.valueToCode(block, 'color', Blockly.Python.ORDER_ATOMIC) || "'#000000'";
 
   var code = `rgbled_${dropdown_pin}.set_color(${value_n}, ${value_color})\n`;
   return code;
@@ -15,7 +15,7 @@ Blockly.Python.forBlock['rgbled_fill_color'] = function(block) {
 
   Blockly.Python.definitions_[`rom_board_import_rgbled_${dropdown_pin}`] = `from board import rgbled_${dropdown_pin}`;
 
-  var value_color = Blockly.Python.valueToCode(block, 'color', Blockly.Python.ORDER_ATOMIC);
+  var value_color = Blockly.Python.valueToCode(block, 'color', Blockly.Python.ORDER_ATOMIC) || "'#000000'";
 
   var code = `rgbled_${dropdown_pin}.fill(${value_color})\n`;
   return code;
@@ -55,7 +55,7 @@ Blockly.Python.forBlock['rgbled_set_brightness'] = function(block) {
 
   Blockly.Python.definitions_[`rom_board_import_rgbled_${dropdown_pin}`] = `from board import rgbled_${dropdown_pin}`;
 
-  var value_brightness = Blockly.Python.valueToCode(block, 'brightness', Blockly.Python.ORDER_ATOMIC);
+  var value_brightness = Blockly.Python.valueToCode(block, 'brightness', Blockly.Python.ORDER_ATOMIC) || "0";
 
   var code = `rgbled_${dropdown_pin}.set_brightness(${value_brightness})\n`;
   return code;

@@ -1,51 +1,3 @@
-Blockly.Events.disableOrphansCustom = function (event) {
-    if (event.type == Blockly.Events.MOVE ||
-        event.type == Blockly.Events.CREATE) {
-        if (!event.workspaceId) {
-            return;
-        }
-        var workspace = Blockly.Workspace.getById(event.workspaceId);
-        var block = workspace.getBlockById(event.blockId);
-        if (block) {
-            if (!workspace.isDragging()) {
-                let block_is_valid = false;
-
-                const valid_top_block = [ 
-                    "controls_on_start", 
-                    "controls_forever_no_connect", 
-                    "procedures_defnoreturn",
-                    "procedures_defreturn",
-                    "procedures_mutatorcontainer",
-                    "procedures_mutatorarg",
-                ];
-
-                if (valid_top_block.indexOf(block.type) >= 0) {
-                    block_is_valid = true;
-                } else {
-                    // Find parent block
-                    let parent = block.getParent();
-                    // console.log("first parent", block.type, parent);
-                    while (parent) {
-                        // console.log("loop parent", block.type, parent.type);
-                        if (valid_top_block.indexOf(parent.type) >= 0) {
-                            block_is_valid = true;
-                            break;
-                        }
-                        parent = parent.getParent();
-                    }
-                }
-
-                // Enable / Disable block
-                block.setEnabled(block_is_valid);
-                var children = block.getDescendants(false);
-                for (var i = 0, child; (child = children[i]); i++) {
-                    child.setEnabled(block_is_valid);
-                }
-            }
-        }
-    }
-};  
-
 addBoard({
     id: "arduino-uno-r4-wifi",
     name: "i-Duino R4 / Uno R4 WiFi",
@@ -151,39 +103,6 @@ addBoard({
                                 </block>
                             `
                         },
-                        /*{
-                            xml: `
-                                <block type="display_left_show">
-                                    <value name="value">
-                                        <shadow type="math_number">
-                                            <field name="NUM">12</field>
-                                        </shadow>
-                                    </value>
-                                </block>
-                            `
-                        },
-                        {
-                            xml: `
-                                <block type="display_right_show">
-                                    <value name="value">
-                                        <shadow type="math_number">
-                                            <field name="NUM">12</field>
-                                        </shadow>
-                                    </value>
-                                </block>
-                            `
-                        },
-                        {
-                            xml: `
-                                <block type="display_plot">
-                                    <value name="value">
-                                        <shadow type="math_number">
-                                            <field name="NUM">0</field>
-                                        </shadow>
-                                    </value>
-                                </block>
-                            `
-                        },*/
                         "display_begin_draw",
                         {
                             xml: `

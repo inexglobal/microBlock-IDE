@@ -1,8 +1,8 @@
 Blockly.JavaScript.forBlock['buzzer_tone'] = function(block) {
     Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
-    var value_freq = Blockly.JavaScript.valueToCode(block, 'freq', Blockly.JavaScript.ORDER_ATOMIC);
-    var value_duration = Blockly.JavaScript.valueToCode(block, 'duration', Blockly.JavaScript.ORDER_ATOMIC);
+    var value_freq = Blockly.JavaScript.valueToCode(block, 'freq', Blockly.JavaScript.ORDER_ATOMIC) || "0";
+    var value_duration = Blockly.JavaScript.valueToCode(block, 'duration', Blockly.JavaScript.ORDER_ATOMIC) || "0";
 
     var code = `sound(${value_freq}, ${value_duration} * 1000);\n`;
     return code;
@@ -11,10 +11,9 @@ Blockly.JavaScript.forBlock['buzzer_tone'] = function(block) {
 Blockly.JavaScript.forBlock['buzzer_notes'] = function(block) {
     Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
-    var value_notes = Blockly.JavaScript.valueToCode(block, 'notes', Blockly.JavaScript.ORDER_ATOMIC);
+    var value_notes = Blockly.JavaScript.valueToCode(block, 'notes', Blockly.JavaScript.ORDER_ATOMIC) || "String(\"\")";
     var dropdown_duration = block.getFieldValue('duration');
     
-    const notes = value_notes.substring(2, value_notes.length - 2).split(" ");
     const note_map = {
         "C4": 261,
         "C#4": 277,
@@ -57,11 +56,27 @@ Blockly.JavaScript.forBlock['buzzer_notes'] = function(block) {
     };
     var code = 
 `{
-  unsigned int notes[] = { ${notes.map(a => note_map?.[a] || 0).join(", ")} };
+  String noteData = String(${value_notes});
+  const char *noteNames[] = { ${Object.keys(note_map).map(name => JSON.stringify(name)).join(", ")} };
+  const unsigned int noteFrequencies[] = { ${Object.values(note_map).join(", ")} };
   unsigned int duration = (${dropdown_duration}) * 1000.0f / 2.0f;
-  for (int freq : notes) {
+  int start = 0;
+  while (start < noteData.length()) {
+    while (start < noteData.length() && noteData.charAt(start) == ' ') start++;
+    if (start >= noteData.length()) break;
+    int end = noteData.indexOf(' ', start);
+    if (end < 0) end = noteData.length();
+    String note = noteData.substring(start, end);
+    unsigned int freq = 0;
+    for (unsigned int i = 0; i < sizeof(noteFrequencies) / sizeof(noteFrequencies[0]); i++) {
+      if (note == noteNames[i]) {
+        freq = noteFrequencies[i];
+        break;
+      }
+    }
     sound(freq, duration);
     delay(duration);
+    start = end + 1;
   }
 }
 `;
@@ -72,14 +87,14 @@ Blockly.JavaScript.forBlock['buzzer_notes'] = function(block) {
 Blockly.JavaScript.forBlock['buzzer_volume'] = function(block) {
     Blockly.JavaScript.definitions_['include']['POP32.h'] = '#include <POP32.h>';
 
-    var value_level = Blockly.JavaScript.valueToCode(block, 'level', Blockly.JavaScript.ORDER_ATOMIC);
+    var value_level = Blockly.JavaScript.valueToCode(block, 'level', Blockly.JavaScript.ORDER_ATOMIC) || "0";
     var code = `buzzer.volume = ${value_level}\n`;
     return code;
 };
 */
 
 Blockly.JavaScript.forBlock['make_note'] = function(block) {
-    var text_notes = block.getFieldValue('notes');
-    var code = `'${text_notes}'`;
-    return [code, Blockly.JavaScript.ORDER_NONE];
+    var text_notes = block.getFieldValue('notes') || '';
+    var code = `String(${Blockly.JavaScript.quote_(text_notes)})`;
+    return [code, Blockly.JavaScript.ORDER_ATOMIC];
 };

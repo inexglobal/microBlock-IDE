@@ -301,7 +301,7 @@ const inlineSVGImages = async svg => {
     }));
 };
 
-const inlineComputedSVGStyles = (sourceRoot, clonedRoot) => {
+const inlineComputedSVGStyles = (sourceRoot, clonedRoot, elementPairs = null) => {
     const properties = [
         "color",
         "display",
@@ -325,8 +325,10 @@ const inlineComputedSVGStyles = (sourceRoot, clonedRoot) => {
         "shape-rendering",
         "vector-effect"
     ];
-    const sourceElements = [sourceRoot, ...sourceRoot.querySelectorAll("*")];
-    const clonedElements = [clonedRoot, ...clonedRoot.querySelectorAll("*")];
+    const sourceElements = elementPairs
+        ? elementPairs.map(pair => pair[0]) : [sourceRoot, ...sourceRoot.querySelectorAll("*")];
+    const clonedElements = elementPairs
+        ? elementPairs.map(pair => pair[1]) : [clonedRoot, ...clonedRoot.querySelectorAll("*")];
 
     sourceElements.forEach((source, index) => {
         const target = clonedElements[index];
@@ -644,27 +646,15 @@ const exportWorkspaceScreenshot = async format => {
     }
 };
 
-const openExportDialog = focusScreenshot => {
+const openExportDialog = () => {
     $("#code-share-dialog").css("display", "flex");
     updateSourceExportUI();
     resetExportDialog();
-
-    if (focusScreenshot) {
-        const screenshotOption = $("#code-share-dialog .share-screenshot-option");
-        screenshotOption.addClass("is-highlighted");
-        setTimeout(() => screenshotOption.removeClass("is-highlighted"), 900);
-        screenshotOption.find("button").first().focus();
-    }
 };
 
 $("#code-share").click(function(event) {
     event.preventDefault();
-    openExportDialog(false);
-});
-
-$("#workspace-screenshot").click(function(event) {
-    event.preventDefault();
-    openExportDialog(true);
+    openExportDialog();
 });
 
 $("#share-project-file").click(exportProjectFile);

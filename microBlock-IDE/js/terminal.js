@@ -1,11 +1,11 @@
+const DEFAULT_TERMINAL_WIDTH = 300;
+
 let term = null, fitAddon = null;
 let terminalShowFlag = false;
-let beforeWidthTerminalSize = 300;
-let terminalOutputPaused = false;
+let beforeWidthTerminalSize = DEFAULT_TERMINAL_WIDTH;
 let terminalTimestampsEnabled = localStorage.getItem("terminalTimestampsEnabled") === "true";
 let terminalLogEntries = [];
 let terminalLogLength = 0;
-let terminalPausedBuffer = "";
 let terminalAtLineStart = true;
 
 const maximumTerminalLogLength = 2 * 1024 * 1024;
@@ -41,7 +41,6 @@ const trimTerminalLog = () => {
 globalThis.resetTerminalLog = () => {
     terminalLogEntries = [];
     terminalLogLength = 0;
-    terminalPausedBuffer = "";
     terminalAtLineStart = true;
 };
 
@@ -53,14 +52,6 @@ globalThis.appendTerminalOutput = value => {
     terminalLogLength += text.length;
     trimTerminalLog();
 
-    if (terminalOutputPaused) {
-        terminalPausedBuffer += text;
-        if (terminalPausedBuffer.length > maximumTerminalLogLength) {
-            terminalPausedBuffer = terminalPausedBuffer.slice(-maximumTerminalLogLength);
-        }
-        return;
-    }
-
     if (term) term.write(addTerminalTimestamps(text));
 };
 
@@ -69,45 +60,55 @@ const updateTerminalToolButtons = () => {
     const timestampLabel = terminalTimestampsEnabled ? "Hide Timestamps" : "Show Timestamps";
     timestampButton.toggleClass("is-active", terminalTimestampsEnabled);
     timestampButton.attr("aria-pressed", String(terminalTimestampsEnabled));
+    timestampButton.attr("aria-label", timestampLabel);
     timestampButton.attr("data-tippy-content", timestampLabel);
     if (timestampButton[0]?._tippy) timestampButton[0]._tippy.setContent(timestampLabel);
-
-    const pauseButton = $("#pause-terminal");
-    const pauseLabel = terminalOutputPaused ? "Resume Output" : "Pause Output";
-    pauseButton.toggleClass("is-active", terminalOutputPaused);
-    pauseButton.attr("aria-pressed", String(terminalOutputPaused));
-    pauseButton.attr("data-tippy-content", pauseLabel);
-    pauseButton.find("i").attr("class", terminalOutputPaused ? "fas fa-play" : "fas fa-pause");
-    if (pauseButton[0]?._tippy) pauseButton[0]._tippy.setContent(pauseLabel);
 };
 
 const MINIMUM_TERMINAL_WIDTH = 300;
+const MINIMUM_TERMINAL_BUTTON_SIZE = 30;
+const MAXIMUM_TERMINAL_BUTTON_SIZE = 36;
+const TERMINAL_TOOLBAR_HORIZONTAL_SPACE = 56;
+const TERMINAL_TOOLBAR_BUTTON_COUNT = 5;
 
-$("#close-terminal").click(() => {
+const updateTerminalToolbarLayout = () => {
+    const terminal = document.getElementById("terminal");
+    if (!terminal) return;
+
+    const terminalWidth = terminal.getBoundingClientRect().width || MINIMUM_TERMINAL_WIDTH;
+    const availableButtonSize = Math.floor(
+        (terminalWidth - TERMINAL_TOOLBAR_HORIZONTAL_SPACE) / TERMINAL_TOOLBAR_BUTTON_COUNT
+    );
+    const buttonSize = Math.max(
+        MINIMUM_TERMINAL_BUTTON_SIZE,
+        Math.min(MAXIMUM_TERMINAL_BUTTON_SIZE, availableButtonSize)
+    );
+    terminal.style.setProperty("--terminal-button-size", `${buttonSize}px`);
+};
+
+const updateTerminalToggleButton = () => {
+    const isOpen = $("#terminal").css("display") !== "none";
+    const button = $("#open-terminal");
+    const label = isOpen ? "Close Terminal" : "Open Terminal";
+    button.toggleClass("is-active", isOpen);
+    button.attr("aria-pressed", String(isOpen));
+    button.attr("aria-expanded", String(isOpen));
+    button.attr("aria-label", label);
+    button.attr("data-tippy-content", label);
+    if (button[0]?._tippy) button[0]._tippy.setContent(label);
+};
+
+const closeTerminalPanel = (rememberOpen = false) => {
     $("#terminal").css("display", "none");
-    if (terminalFullSizeFlag) {
-        $(".page > .main").css("display", "flex");
-    }
     Blockly.triggleResize();
     if (editor) editor.layout();
-    terminalShowFlag = false;
-    $("#terminal-h-resize").css("display", "none");
-    localStorage.removeItem("terminal_size");
-});
+    terminalShowFlag = rememberOpen;
+    updatePanelResizeHandles();
+    if (!rememberOpen) localStorage.removeItem("terminal_size");
+    updateTerminalToggleButton();
+};
 
-let terminalFullSizeFlag = false;
-$("#resize-terminal").click(() => {
-    terminalFullSizeFlag = !terminalFullSizeFlag;
-    if (terminalFullSizeFlag) beforeWidthTerminalSize = $("#terminal").width();
-    $("#terminal").width(terminalFullSizeFlag ? "100%" : beforeWidthTerminalSize);
-    if (terminalFullSizeFlag) {
-        $(".page > .main").css("display", "none");
-    } else {
-        $(".page > .main").css("display", "flex");
-    }
-    fitAddon.fit();
-    localStorage.setItem("terminal_size", $("#terminal").width());
-});
+$("#close-terminal").click(() => closeTerminalPanel());
 
 $("#clear-terminal").click(() => {
     if (term) term.clear();
@@ -118,15 +119,6 @@ $("#toggle-terminal-timestamps").click(() => {
     terminalTimestampsEnabled = !terminalTimestampsEnabled;
     localStorage.setItem("terminalTimestampsEnabled", String(terminalTimestampsEnabled));
     terminalAtLineStart = true;
-    updateTerminalToolButtons();
-});
-
-$("#pause-terminal").click(() => {
-    terminalOutputPaused = !terminalOutputPaused;
-    if (!terminalOutputPaused && terminalPausedBuffer) {
-        if (term) term.write(addTerminalTimestamps(terminalPausedBuffer));
-        terminalPausedBuffer = "";
-    }
     updateTerminalToolButtons();
 });
 
@@ -171,16 +163,14 @@ $("#export-terminal-log").click(async () => {
 });
 
 updateTerminalToolButtons();
+updateTerminalToggleButton();
 
-$("#open-terminal").click(() => {
+const openTerminalPanel = () => {
     terminalShowFlag = true;
     $("#terminal").css("display", "flex");
-    if (terminalFullSizeFlag) {
-        $(".page > .main").css("display", "none");
-    } else {
-        $("#terminal").width(beforeWidthTerminalSize);
-        Blockly.triggleResize();
-    }
+    $("#terminal").width(beforeWidthTerminalSize);
+    Blockly.triggleResize();
+    updateTerminalToolbarLayout();
     if (editor) editor.layout();
     if (fitAddon) {
         setTimeout(() => {
@@ -188,50 +178,39 @@ $("#open-terminal").click(() => {
             fitAddon.fit();
         }, 10);
     }
-    $("#terminal-h-resize").css("display", "block");
-    $("#terminal-h-resize").css("right", $("#terminal").width());
+    updatePanelResizeHandles();
     localStorage.setItem("terminal_size", $("#terminal").width());
+    updateTerminalToggleButton();
+};
+
+$("#open-terminal").click(() => {
+    if ($("#terminal").css("display") !== "none") {
+        closeTerminalPanel();
+    } else {
+        openTerminalPanel();
+    }
 });
 
-$("#terminal-h-resize").bind('mousedown', function(event){
-    offsetX = event.pageX - ($(document).width() - +$("#terminal-h-resize").css("right").replace("px", ""));
-    offsetX = $(document).width() + offsetX;
-    $("#terminal-h-resize").addClass("active");
-
-    $(document).bind('mousemove', function(event){
-        let rightPos = offsetX - event.pageX;
-        rightPos = rightPos < MINIMUM_TERMINAL_WIDTH ? MINIMUM_TERMINAL_WIDTH : rightPos;
-        $("#terminal-h-resize").css("right", rightPos - 14);
-    }).bind('mouseup', function(event){
-        $(this).unbind('mousemove');
-        $(this).unbind('mouseup');
-
-        if (deviceMode === MODE_REAL_DEVICE) {
-            $("#terminal").width(+$("#terminal-h-resize").css("right").replace("px", ""));
-            localStorage.setItem("terminal_size", $("#terminal").width());
-        } else if (deviceMode === MODE_SIMULATOR) {
-            $("#simulator").width(+$("#terminal-h-resize").css("right").replace("px", ""));
-            localStorage.setItem("simulator_width_size", $("#simulator").width());
+bindPanelResizeHandle("terminal-h-resize", getResizableDevicePanel, {
+    minimumWidth: panel => panel.id === "simulator" ? MINIMUM_SIMULATOR_WIDTH : MINIMUM_TERMINAL_WIDTH,
+    onResize: panel => {
+        if (panel.id === "terminal") updateTerminalToolbarLayout();
+    },
+    onResizeEnd: panel => {
+        if (panel.id === "terminal") {
+            beforeWidthTerminalSize = $(panel).width();
+            localStorage.setItem("terminal_size", beforeWidthTerminalSize);
+        } else {
+            localStorage.setItem("simulator_width_size", $(panel).width());
         }
-
-        Blockly.triggleResize();
-        if (editor) editor.layout();
-        if (fitAddon) {
-            setTimeout(() => {
-                fitAddon.fit();
-                fitAddon.fit();
-            }, 10);
-        }
-
-        $("#terminal-h-resize").removeClass("active");
-    });
+    }
 });
+
+window.addEventListener("resize", updateTerminalToolbarLayout);
 
 if (!isEmbed && deviceMode === MODE_REAL_DEVICE) {
-    terminal_size = localStorage.getItem("terminal_size");
-    if (terminal_size) {
-        terminal_size = +terminal_size;
-        beforeWidthTerminalSize = terminal_size >= MINIMUM_TERMINAL_WIDTH ? terminal_size : MINIMUM_TERMINAL_WIDTH;
-        $(() => $("#open-terminal").click());
+    // Reopen a visible terminal at the compact default on each app launch.
+    if (localStorage.getItem("terminal_size")) {
+        $(() => openTerminalPanel());
     }
 }

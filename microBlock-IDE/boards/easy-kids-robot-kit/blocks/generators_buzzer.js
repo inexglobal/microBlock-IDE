@@ -1,8 +1,8 @@
 Blockly.Python.forBlock['buzzer_tone'] = function(block) {
     Blockly.Python.definitions_['from_board_import_buzzer'] = 'from board import buzzer';
 
-    var value_freq = Blockly.Python.valueToCode(block, 'freq', Blockly.Python.ORDER_ATOMIC);
-    var value_duration = Blockly.Python.valueToCode(block, 'duration', Blockly.Python.ORDER_ATOMIC);
+    var value_freq = Blockly.Python.valueToCode(block, 'freq', Blockly.Python.ORDER_ATOMIC) || "0";
+    var value_duration = Blockly.Python.valueToCode(block, 'duration', Blockly.Python.ORDER_ATOMIC) || "0";
     var code = `buzzer.tone(${value_freq}, ${value_duration})\n`;
     return code;
 };
@@ -10,7 +10,7 @@ Blockly.Python.forBlock['buzzer_tone'] = function(block) {
 Blockly.Python.forBlock['buzzer_notes'] = function(block) {
     Blockly.Python.definitions_['from_board_import_buzzer'] = 'from board import buzzer';
 
-    var value_notes = Blockly.Python.valueToCode(block, 'notes', Blockly.Python.ORDER_ATOMIC);
+    var value_notes = Blockly.Python.valueToCode(block, 'notes', Blockly.Python.ORDER_ATOMIC) || "''";
     var dropdown_duration = block.getFieldValue('duration');
 
     var code = `buzzer.note(${value_notes}, ${dropdown_duration})\n`;
@@ -20,7 +20,7 @@ Blockly.Python.forBlock['buzzer_notes'] = function(block) {
 Blockly.Python.forBlock['buzzer_volume'] = function(block) {
     Blockly.Python.definitions_['from_board_import_buzzer'] = 'from board import buzzer';
 
-    var value_level = Blockly.Python.valueToCode(block, 'level', Blockly.Python.ORDER_ATOMIC);
+    var value_level = Blockly.Python.valueToCode(block, 'level', Blockly.Python.ORDER_ATOMIC) || "0";
     var code = `buzzer.volume = ${value_level}\n`;
     return code;
 };

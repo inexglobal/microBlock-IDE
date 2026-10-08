@@ -1,8 +1,8 @@
 Blockly.Python.forBlock['pin_digital_write'] = function (block) {
     Blockly.Python.definitions_['from_machine_import_pin'] = 'from machine import Pin';
 
-    var value_value = Blockly.Python.valueToCode(block, 'value', Blockly.Python.ORDER_ATOMIC);
-    var dropdown_pin = Blockly.Python.valueToCode(block, 'pin', Blockly.Python.ORDER_ATOMIC);
+    var value_value = Blockly.Python.valueToCode(block, 'value', Blockly.Python.ORDER_ATOMIC) || "0";
+    var dropdown_pin = Blockly.Python.valueToCode(block, 'pin', Blockly.Python.ORDER_ATOMIC) || "0";
 
     var code = `Pin(${dropdown_pin}, Pin.OUT).value(${value_value})\n`;
     return code;
@@ -11,7 +11,7 @@ Blockly.Python.forBlock['pin_digital_write'] = function (block) {
 Blockly.Python.forBlock['pin_digital_read'] = function (block) {
     Blockly.Python.definitions_['from_machine_import_pin'] = 'from machine import Pin';
 
-    var dropdown_pin = Blockly.Python.valueToCode(block, 'pin', Blockly.Python.ORDER_ATOMIC);
+    var dropdown_pin = Blockly.Python.valueToCode(block, 'pin', Blockly.Python.ORDER_ATOMIC) || "0";
 
     var code = `Pin(${dropdown_pin}, Pin.IN).value()`;
     return [code, Blockly.Python.ORDER_NONE];
@@ -21,7 +21,7 @@ Blockly.Python.forBlock['pin_touch_read'] = function (block) {
     Blockly.Python.definitions_['from_machine_import_pin'] = 'from machine import Pin';
     Blockly.Python.definitions_['from_machine_import_touchpad'] = 'from machine import TouchPad';
 
-    var dropdown_pin = Blockly.Python.valueToCode(block, 'pin', Blockly.Python.ORDER_ATOMIC);
+    var dropdown_pin = Blockly.Python.valueToCode(block, 'pin', Blockly.Python.ORDER_ATOMIC) || "0";
 
     var code = `TouchPad(Pin(${dropdown_pin}, Pin.IN)).read()`;
     return [code, Blockly.Python.ORDER_NONE];
@@ -39,7 +39,7 @@ Blockly.Python.forBlock['pin_analog_read'] = function (block) {
         '  adc.width(ADC.WIDTH_12BIT)',
         '  return adc.read()']);
 
-    var dropdown_pin = Blockly.Python.valueToCode(block, 'pin', Blockly.Python.ORDER_ATOMIC);
+    var dropdown_pin = Blockly.Python.valueToCode(block, 'pin', Blockly.Python.ORDER_ATOMIC) || "0";
 
     var code = `${functionName}(${dropdown_pin})`;
     return [code, Blockly.Python.ORDER_NONE];
@@ -49,8 +49,8 @@ Blockly.Python.forBlock['pin_analog_write'] = function (block) {
     Blockly.Python.definitions_['from_machine_import_pin'] = 'from machine import Pin';
     Blockly.Python.definitions_['from_machine_import_pwm'] = 'from machine import PWM';
 
-    var value_value = Blockly.Python.valueToCode(block, 'value', Blockly.Python.ORDER_ATOMIC);
-    var dropdown_pin = Blockly.Python.valueToCode(block, 'pin', Blockly.Python.ORDER_ATOMIC);
+    var value_value = Blockly.Python.valueToCode(block, 'value', Blockly.Python.ORDER_ATOMIC) || "0";
+    var dropdown_pin = Blockly.Python.valueToCode(block, 'pin', Blockly.Python.ORDER_ATOMIC) || "0";
     var code = `PWM(Pin(${dropdown_pin}), freq=1000, duty=int(${value_value}))\n`;
     return code;
 };

@@ -1,6 +1,6 @@
 // Fixed text
 Blockly.JavaScript.quote_ = (a) => {
-    a = a.replace(/\\/g, "\\\\").replace(/\n/g, '\\\n').replace(/"/g, '\\"');
+    a = a.replace(/\\/g, "\\\\").replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\t/g, '\\t').replace(/"/g, '\\"');
     return `"${a}"`;
 }
 

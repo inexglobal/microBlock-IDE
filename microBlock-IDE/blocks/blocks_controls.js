@@ -1,3 +1,7 @@
+// Keep break/continue enabled inside the custom loop blocks.
+Blockly.libraryBlocks.loops.loopTypes.add("controls_forever");
+Blockly.libraryBlocks.loops.loopTypes.add("while_loop");
+
 Blockly.defineBlocksWithJsonArray([
 {
   "type": "controls_wait",

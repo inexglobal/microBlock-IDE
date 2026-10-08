@@ -182,11 +182,11 @@ Blockly.defineBlocksWithJsonArray([
 },
 {
   "type": "rtc_get_microsecond",
-  "message0": "RTC get Microsecond",
+  "message0": "RTC get Subseconds",
   "inputsInline": false,
   "output": "Number",
   "colour": "#8E44AD",
-  "tooltip": "",
+  "tooltip": "RTC subsecond value; units depend on the board's MicroPython port.",
   "helpUrl": ""
 },
 {
@@ -318,6 +318,7 @@ Blockly.Blocks['call_import'] = {
     this.setColour("#8E44AD");
     this.setTooltip("");
     this.setHelpUrl("");
+    this._updateInputValue(JSON.parse(this.getFieldValue('object') || '{}') || {});
 
     /* this.setOnChange(function(changeEvent) {
       if (([ "change" ].indexOf(changeEvent?.type) < 0) || changeEvent.isUiEvent) {
@@ -333,7 +334,7 @@ Blockly.Blocks['call_import'] = {
       return;
     }
     // console.log("changeEvent", e, this);
-    const function_detail = JSON.parse(this.getFieldValue('object')) || {};
+    const function_detail = JSON.parse(this.getFieldValue('object') || '{}') || {};
     this._updateInputValue(function_detail);
   },
   generateOptions: function() {
@@ -343,7 +344,7 @@ Blockly.Blocks['call_import'] = {
     for (const file_name of file_list) {
       if (file_name.endsWith(".xml")) {
         const dom = Blockly.utils.xml.textToDom(fs.read(file_name));
-        for (const block of dom.querySelectorAll("block[type='procedures_defreturn'],block[type='procedures_defnoreturn'],block[type='procedures_callreturn']")) {
+        for (const block of dom.querySelectorAll("block[type='procedures_defreturn'],block[type='procedures_defnoreturn']")) {
           const function_name = block.querySelector("field[name='NAME']").textContent;
           const call_function = file_name.replace(/\.(py|xml)/, "") + "." + function_name;
           const function_detail = JSON.stringify({
@@ -377,8 +378,9 @@ Blockly.Blocks['call_import'] = {
             }
 
             const def_cut = line.match(/^def\s+(.*)\((.*)\)\s*:/);
+            if (!def_cut) continue;
             focus_function = def_cut[1];
-            focus_input = def_cut[2].split(",").map(a => a.replace(/\=.+/, "").replace(/^\s+|\s+$/gm, ""));
+            focus_input = def_cut[2].split(",").map(a => a.replace(/\=.+/, "").replace(/^\s+|\s+$/gm, "")).filter(Boolean);
             focus_output = false;
             in_function_find_return = true;
           } else if ((line.match(/^(\s+)/)?.[0]?.length || 0) > 0) {
@@ -417,35 +419,37 @@ Blockly.Blocks['call_import'] = {
   },
 
   _updateInputValue: function(function_detail) {
-    if (function_detail?.output) {
+    if (!!this.outputConnection !== !!function_detail?.output) {
       this.unplug();
+    }
+    if (function_detail?.output) {
       this.setPreviousStatement(false);
       this.setNextStatement(false);
       this.setOutput(true);
     } else {
+      this.setOutput(false);
       this.setPreviousStatement(true);
       this.setNextStatement(true);
-      this.setOutput(false);
     }
+    const input_names = function_detail?.input || [];
     const to_remove = [];
     for (const input of this.inputList) {
-      if (input.name.length > 0) {
+      if (input.name.length > 0 && !input_names.includes(input.name)) {
         to_remove.push(input.name);
       }
     }
     to_remove.forEach(inputName => this.removeInput(inputName));
-    for (const input_name of function_detail?.input) {
-      if (this.inputList.map(a => a.name).indexOf(input_name) >= 0) {
-        continue;
+    for (const input_name of input_names) {
+      if (!this.getInput(input_name)) {
+        this.appendValueInput(input_name)
+          .setCheck(null)
+          .setAlign(Blockly.ALIGN_RIGHT)
+          .appendField(input_name + ":");
       }
-      this.appendValueInput(input_name)
-        .setCheck(null)
-        .setAlign(Blockly.ALIGN_RIGHT)
-        .appendField(input_name + ":");
+      this.moveInputBefore(input_name, null);
       // console.log("Add", input_name);
     }
 
-    this.mutationToDom();
   },
 
 
@@ -466,7 +470,7 @@ Blockly.Blocks['call_import'] = {
    * @this {Blockly.Block}
    */
   domToMutation: function(xmlElement) {
-    const function_detail = JSON.parse(xmlElement.textContent) || {};
+    const function_detail = JSON.parse(xmlElement.textContent || '{}') || {};
     this._updateInputValue(function_detail);
   }
 };

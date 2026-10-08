@@ -174,8 +174,7 @@
                             <li><button id="open-workspace-search" data-tippy-content="Find in Workspace"><i class="fas fa-search"></i></button></li>
                             <li><button id="toggle-sound" data-tippy-content="Turn Sound Off" aria-label="Turn Sound Off" aria-pressed="false"><i class="fas fa-volume-up"></i></button></li>
                             <li><button id="open-help" data-tippy-content="Help"><i class="fas fa-question"></i></button></li>
-                            <li><button id="workspace-screenshot" data-tippy-content="Export Screenshot"><i class="fas fa-camera"></i></button></li>
-                            <li><button id="code-share" data-tippy-content="Export Project"><i class="fas fa-file-export"></i></button></li>
+                            <li><button type="button" id="code-share" data-tippy-content="Export" aria-label="Export" aria-haspopup="dialog" aria-controls="code-share-dialog"><i class="fas fa-file-export" aria-hidden="true"></i><span>Export</span></button></li>
                         </ul>
                         <ul class="embed-only top-bar-button" style="display: none;">
                             <li><button id="embed-edit" data-tippy-content="Upload & Edit"><i class="fas fa-external-link-alt"></i></button></li>
@@ -217,8 +216,8 @@
                             </li>
                         </ul>
                         <ul class="button-list right">
-                            <li><button id="open-note" data-tippy-content="Open Note"><i class="fas fa-sticky-note"></i></button>
-                            <li><button id="open-terminal" data-tippy-content="Open Terminal"><i class="fas fa-terminal"></i></button></li>
+                            <li><button type="button" id="open-note" class="panel-toggle" data-tippy-content="Open Note" aria-label="Open Note" aria-controls="note" aria-expanded="false" aria-pressed="false"><i class="fas fa-sticky-note"></i></button></li>
+                            <li><button type="button" id="open-terminal" class="panel-toggle" data-tippy-content="Open Terminal" aria-label="Open Terminal" aria-controls="terminal" aria-expanded="false" aria-pressed="false"><i class="fas fa-terminal"></i></button></li>
                         </ul>
                     </div>
                     <div class="status-bar">
@@ -242,15 +241,13 @@
             <article id="terminal">
                 <header>
                     <div class="title">Terminal</div>
-                    <div class="icon">
-                        <button id="connect-device" data-tippy-content="Connect"><i class="fas fa-link"></i></button>
-                        <button id="disconnect-device" data-tippy-content="Disconnect"><i class="fas fa-comment-slash"></i></button>
-                        <button id="toggle-terminal-timestamps" data-tippy-content="Show Timestamps" aria-pressed="false"><i class="far fa-clock"></i></button>
-                        <button id="pause-terminal" data-tippy-content="Pause Output" aria-pressed="false"><i class="fas fa-pause"></i></button>
-                        <button id="export-terminal-log" data-tippy-content="Export Log"><i class="fas fa-file-download"></i></button>
-                        <button id="clear-terminal" data-tippy-content="Clear"><i class="fas fa-eraser"></i></button>
-                        <button id="resize-terminal" data-tippy-content="Resize"><i class="fas fa-expand-alt"></i></button>
-                        <button id="close-terminal" data-tippy-content="Close"><i class="fas fa-times"></i></button>
+                    <div class="icon" role="toolbar" aria-label="Terminal Controls">
+                        <button type="button" id="connect-device" data-tippy-content="Connect" aria-label="Connect"><i class="fas fa-link"></i></button>
+                        <button type="button" id="disconnect-device" data-tippy-content="Disconnect" aria-label="Disconnect"><i class="fas fa-comment-slash"></i></button>
+                        <button type="button" id="toggle-terminal-timestamps" data-tippy-content="Show Timestamps" aria-label="Show Timestamps" aria-pressed="false"><i class="far fa-clock"></i></button>
+                        <button type="button" id="export-terminal-log" data-tippy-content="Export Log" aria-label="Export Log"><i class="fas fa-file-download"></i></button>
+                        <button type="button" id="clear-terminal" data-tippy-content="Clear" aria-label="Clear"><i class="fas fa-eraser"></i></button>
+                        <button type="button" id="close-terminal" data-tippy-content="Close" aria-label="Close"><i class="fas fa-times"></i></button>
                     </div>
                 </header>
                 <section contenteditable="true"></section>
@@ -470,8 +467,8 @@
         <div id="code-share-dialog" role="dialog" aria-modal="true" aria-labelledby="code-share-title">
             <section>
                 <header>
-                    <div class="title" id="code-share-title">Export Project</div>
-                    <button type="button" class="close-btn" aria-label="Close Export Project"><i class="fas fa-times"></i></button>
+                    <div class="title" id="code-share-title">Export</div>
+                    <button type="button" class="close-btn" aria-label="Close Export"><i class="fas fa-times"></i></button>
                 </header>
                 <section>
                     <div class="share-layout">
@@ -546,21 +543,36 @@
             </section>
         </div>
 
-        <div id="workspace-search-dialog" class="dialog productivity-dialog compact">
+        <div id="workspace-search-dialog" class="dialog productivity-dialog compact" role="dialog" aria-modal="true" aria-labelledby="workspace-search-title">
             <header>
-                <div class="title"><i class="fas fa-search"></i> Find in Workspace</div>
-                <div class="icon"><button data-tippy-content="Close" class="close-dialog"><i class="fas fa-times"></i></button></div>
+                <div class="workspace-search-heading">
+                    <span class="workspace-search-heading-icon" aria-hidden="true"><i class="fas fa-search"></i></span>
+                    <div><h2 id="workspace-search-title">Find in Workspace</h2><p>Preview the current block and jump straight to it.</p></div>
+                </div>
+                <button type="button" data-tippy-content="Close" class="close-dialog workspace-search-close" aria-label="Close Find in Workspace"><i class="fas fa-times" aria-hidden="true"></i></button>
             </header>
-            <section class="productivity-content">
-                <label class="workspace-search-box" for="workspace-search-input">
-                    <i class="fas fa-search"></i>
-                    <input id="workspace-search-input" type="search" autocomplete="off" placeholder="Search blocks, functions, or variables">
-                    <kbd>Esc</kbd>
-                </label>
-                <div id="workspace-search-summary" class="productivity-summary">Type to search the current workspace.</div>
-                <div id="workspace-search-results" class="productivity-list search-results"></div>
+            <section class="productivity-content workspace-search-content">
+                <div class="workspace-search-controls">
+                    <label for="workspace-search-input">Filter blocks in your program</label>
+                    <div class="workspace-search-box">
+                        <i class="fas fa-search" aria-hidden="true"></i>
+                        <input id="workspace-search-input" type="search" autocomplete="off" spellcheck="false" placeholder="Block text, function, or variable name" aria-describedby="workspace-search-summary">
+                        <button type="button" id="workspace-search-clear" aria-label="Clear search" data-tippy-content="Clear search" hidden><i class="fas fa-times" aria-hidden="true"></i></button>
+                    </div>
+                    <div class="workspace-search-meta">
+                        <div id="workspace-search-summary" class="productivity-summary" role="status" aria-live="polite">All blocks in the current workspace.</div>
+                        <label class="workspace-search-category-filter" for="workspace-search-category"><span>Category</span><select id="workspace-search-category"><option value="all">All categories</option></select></label>
+                    </div>
+                </div>
+                <div id="workspace-search-results" class="productivity-list search-results" aria-label="Search results"></div>
             </section>
+            <footer class="workspace-search-footer">
+                <span><kbd>&uarr;</kbd><kbd>&darr;</kbd> Navigate</span>
+                <span><kbd>Enter</kbd> Go to block</span>
+                <span><kbd>Esc</kbd> Close</span>
+            </footer>
         </div>
+        <div class="workspace-search-backdrop" aria-hidden="true"></div>
 
         <div id="help-dialog" class="dialog">
             <header>
@@ -604,9 +616,9 @@
                             <article><i class="fas fa-history"></i><div><h4>History</h4><p>Restore one of the last 10 auto-saved versions.</p></div></article>
                             <article><i class="fas fa-search"></i><div><h4>Find</h4><p>Search blocks, functions, and variables.</p></div></article>
                             <article><i class="fas fa-file-archive"></i><div><h4>Project Package</h4><p>Export the project, source, preview, and board info in one ZIP.</p></div></article>
-                            <article><i class="fas fa-terminal"></i><div><h4>Serial Tools</h4><p>Add timestamps, pause output, or export a log.</p></div></article>
+                            <article><i class="fas fa-terminal"></i><div><h4>Serial Tools</h4><p>Add timestamps or export a log.</p></div></article>
                             <article><i class="fas fa-cubes"></i><div><h4>Extensions</h4><p>Add blocks for more hardware.</p></div></article>
-                            <article><i class="fas fa-camera"></i><div><h4>Screenshots</h4><p>Export the full workspace as SVG, PNG, JPG, or PDF.</p></div></article>
+                            <article><i class="fas fa-camera"></i><div><h4>Screenshots</h4><p>Use Export to save the full workspace as SVG, PNG, JPG, or PDF.</p></div></article>
                         </div>
                     </section>
                 </div>
@@ -772,6 +784,7 @@
         <script src="js/mode.js"></script>
         <script src="js/firmware.js"></script>
         <script src="js/serial.js"></script>
+        <script src="js/panel-resize.js"></script>
         <script src="js/simulator.js"></script>
         <script src="js/terminal.js"></script>
         <script src="js/note.js"></script>
