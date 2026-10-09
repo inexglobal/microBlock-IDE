@@ -218,42 +218,78 @@ const reconcileLegacyBlockGenerators = snapshots => {
 };
 
 let dynamicScriptId = 0;
+let dynamicScriptQueue = Promise.resolve();
 
-const runJavaScript = (source, sourceName="dynamic-script.js") => {
-    const generatorSnapshots = snapshotLegacyBlockGenerators();
-    const errorKey = `__microBlockDynamicScriptError${dynamicScriptId++}`;
-    const safeSourceName = String(sourceName).replace(/[\r\n]/g, "");
-    const wrappedSource = `try {\n${source}\n} catch (error) { window[${JSON.stringify(errorKey)}] = error; }\n//# sourceURL=${safeSourceName}`;
-    const scriptURL = URL.createObjectURL(new Blob([wrappedSource], { type: "text/javascript" }));
+const runJavaScript = (source, sourceName="dynamic-script.js", options={}) => {
+    // Snapshot and execute in one queue turn: concurrent extension installs or
+    // metadata reads must not attribute another script's handlers to this one.
+    const execution = dynamicScriptQueue.then(async () => {
+        let executionContext;
+        let executionError;
+        try {
+            if (options.beforeExecute) executionContext = await options.beforeExecute();
+            if (typeof source !== "string") throw new Error(`Missing JavaScript source: ${sourceName}`);
+            const generatorSnapshots = snapshotLegacyBlockGenerators();
+            const errorKey = `__microBlockDynamicScriptError${dynamicScriptId++}`;
+            const safeSourceName = String(sourceName).replace(/[\r\n]/g, "");
+            const wrappedSource = `try {\n${source}\n} catch (error) { window[${JSON.stringify(errorKey)}] = error; }\n//# sourceURL=${safeSourceName}`;
+            const scriptURL = URL.createObjectURL(new Blob([wrappedSource], { type: "text/javascript" }));
 
-    return new Promise((resolve, reject) => {
-        const script = document.createElement("script");
-        const cleanup = () => {
-            script.remove();
-            URL.revokeObjectURL(scriptURL);
-        };
-
-        script.src = scriptURL;
-        script.onload = () => {
-            const error = window[errorKey];
-            delete window[errorKey];
+            await new Promise((resolve, reject) => {
+                const script = document.createElement("script");
+                const errorSources = new Set([scriptURL, safeSourceName]);
+                try { errorSources.add(new URL(safeSourceName, document.baseURI).href); } catch (error) { /* Diagnostic name only. */ }
+                let scriptError;
+                let settled = false;
+                const captureScriptError = event => {
+                    if (errorSources.has(event.filename)) {
+                        scriptError = event.error || new Error(event.message || `Unable to execute ${safeSourceName}`);
+                    }
+                };
+                const cleanup = () => {
+                    window.removeEventListener("error", captureScriptError);
+                    delete window[errorKey];
+                    script.remove();
+                    URL.revokeObjectURL(scriptURL);
+                };
+                const finish = error => {
+                    if (settled) return;
+                    settled = true;
+                    try {
+                        // Keep valid handlers registered before a runtime error.
+                        reconcileLegacyBlockGenerators(generatorSnapshots);
+                    } catch (compatibilityError) {
+                        error = error || compatibilityError;
+                    }
+                    cleanup();
+                    error ? reject(error) : resolve();
+                };
+                script.src = scriptURL;
+                script.async = false;
+                script.onload = () => finish(window[errorKey] || scriptError);
+                script.onerror = () => finish(scriptError || new Error(`Unable to load ${safeSourceName}`));
+                window.addEventListener("error", captureScriptError);
+                try {
+                    document.head.appendChild(script);
+                } catch (error) {
+                    finish(error);
+                }
+            });
+        } catch (error) {
+            executionError = error;
+            throw error;
+        } finally {
             try {
-                // Keep valid handlers registered before a later runtime error.
-                reconcileLegacyBlockGenerators(generatorSnapshots);
-            } catch (compatibilityError) {
-                cleanup();
-                reject(error || compatibilityError);
-                return;
+                if (options.afterExecute) await options.afterExecute(executionError, executionContext);
+            } catch (hookError) {
+                if (!executionError) throw hookError;
+                console.warn("Unable to finish JavaScript registration tracking", hookError);
             }
-            cleanup();
-            error ? reject(error) : resolve();
-        };
-        script.onerror = () => {
-            cleanup();
-            reject(new Error(`Unable to load ${safeSourceName}`));
-        };
-        document.head.appendChild(script);
+        }
     });
+    // A rejected extension must not poison later scripts in the shared queue.
+    dynamicScriptQueue = execution.catch(() => {});
+    return execution;
 };
 
 const evaluateJavaScriptExpression = async (source, sourceName="dynamic-expression.js") => {
@@ -276,4 +312,64 @@ const readFileAsDataURL = async filePath => {
     const mimeType = mimeTypes[path.extname(filePath).toLowerCase()] || "application/octet-stream";
     const contents = await readFileAsync(filePath);
     return `data:${mimeType};base64,${contents.toString("base64")}`;
+};
+
+// Use one project-first source choice in the toolbox and extension management.
+// Keep damaged sources in this inventory so they can still be uninstalled.
+const getInstalledExtensionSources = async () => {
+    const sources = [];
+    const projectIds = new Set(fs.ls("/extension"));
+    for (const id of projectIds) {
+        const basePath = `/extension/${id}`;
+        const extensionPath = `${basePath}/extension.js`;
+        try {
+            const extensionSource = fs.read(extensionPath);
+            sources.push({ id, isProject: true, basePath, extensionPath, extensionSource });
+        } catch (error) {
+            sources.push({ id, isProject: true, basePath, extensionPath, error });
+        }
+    }
+    if (isElectron) {
+        for (const id of nodeFS.ls(sharedObj.extensionDir)) {
+            if (projectIds.has(id)) continue;
+            const basePath = path.join(sharedObj.extensionDir, id);
+            const extensionPath = path.join(basePath, "extension.js");
+            try {
+                const extensionSource = (await readFileAsync(extensionPath)).toString();
+                sources.push({ id, isProject: false, basePath, extensionPath, extensionSource });
+            } catch (error) {
+                sources.push({ id, isProject: false, basePath, extensionPath, error });
+            }
+        }
+    }
+    return sources;
+};
+
+const getInstalledExtensionRecords = async () => {
+    const records = [];
+    for (const source of await getInstalledExtensionSources()) {
+        let extension = { name: source.id };
+        let icon = `${rootPath}/favicon.png`;
+        try {
+            if (source.error) throw source.error;
+            if (typeof source.extensionSource !== "string") throw new Error("Missing extension.js");
+            const metadata = await evaluateJavaScriptExpression(source.extensionSource, source.extensionPath);
+            if (!metadata || typeof metadata.name !== "string" || !metadata.name.trim()) {
+                throw new Error("Invalid extension metadata");
+            }
+            extension = metadata;
+            if (extension.icon) {
+                try {
+                    icon = source.isProject ? fs.read(`${source.basePath}/${extension.icon}`) || icon
+                        : await readFileAsDataURL(path.join(source.basePath, extension.icon));
+                } catch (error) {
+                    console.warn(`Could not load icon for extension ${source.id}`, error);
+                }
+            }
+        } catch (error) {
+            console.warn(`Could not read installed extension ${source.id} (${source.extensionPath})`, error);
+        }
+        records.push({ id: source.id, extension, icon, source });
+    }
+    return records;
 };

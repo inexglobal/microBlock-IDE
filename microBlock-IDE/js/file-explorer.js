@@ -37,23 +37,17 @@ const updateProjectFileSelectEventHandle = () => {
 };
 
 const updateExtensionSelectEventHandle = () => {
-    $("#extension-list > li .delete-btn").on("click", function(e) {
-        if (!$(e.target).hasClass("fa-trash")) {
-            e.preventDefault();
-            return;
-        }
-
+    $("#extension-list > li .delete-btn").on("click", async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
         const extension_id = $(this).parents("li").attr("data-extension-id");
-        fs.remove(`/extension/${extension_id}`);
-        if (isElectron) {
-            let path = `${sharedObj.extensionDir}/${extension_id}`;
-            if (nodeFS.existsSync(path)) {
-                nodeFS.rmdirSync(path, { recursive: true });
-            }
+        try {
+            if (!await removeExtension(extension_id)) return;
+            $("#file-explorer-open-btn").click();
+        } catch (error) {
+            console.error("Could not uninstall extension", extension_id, error);
+            NotifyE("Uninstall extension fail");
         }
-
-        updateBlockCategory();
-        $("#file-explorer-open-btn").click();
     });
 }
 
@@ -82,26 +76,11 @@ $("#file-explorer-open-btn").on("click", async () => {
 
     // Extension list
     list_code = "";
-    const project_extension_list = fs.ls("/extension");
-    let extension_installed_list = [...project_extension_list];
-    if (isElectron) {
-        extension_installed_list = extension_installed_list.concat(nodeFS.ls(sharedObj.extensionDir));
-    }
-    for (const extension_id of extension_installed_list) {
-        let extensionPath;
-        let extensionSource;
-        if (project_extension_list.includes(extension_id)) {
-            extensionPath = `/extension/${extension_id}/extension.js`;
-            extensionSource = fs.read(extensionPath);
-        } else {
-            extensionPath = `${sharedObj.extensionDir}/${extension_id}/extension.js`;
-            extensionSource = (await readFileAsync(extensionPath)).toString();
-        }
-        const extension = await evaluateJavaScriptExpression(extensionSource, extensionPath);
+    for (const { id, extension } of await getInstalledExtensionRecords()) {
         list_code += `
-            <li data-extension-id="${extension_id}">
+            <li data-extension-id="${escapeToolboxAttribute(id)}">
                 <i class="fas fa-cubes"></i>
-                <span>${extension?.name || "?"}</span>
+                <span>${escapeToolboxAttribute(extension.name)}</span>
                 <button class="delete-btn"><i class="fas fa-trash"></i></button>
             </li>
         `;

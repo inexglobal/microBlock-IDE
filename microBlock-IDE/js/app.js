@@ -93,54 +93,18 @@ let updateBlockCategory = async () => {
 
     // Extenstion
     const extenstionTree = [];
-    const installedExtensionIds = new Set();
-    for (const extensionId of fs.ls("/extension")) {
-        // Use the same project-first source choice as the script loader, even
-        // when its metadata is damaged; never mix two versions of an extension.
-        installedExtensionIds.add(extensionId);
-        const extensionPath = `/extension/${extensionId}/extension.js`;
-        try {
-            const source = fs.read(extensionPath);
-            if (typeof source !== "string") throw new Error("Missing extension.js");
-            const extension = await evaluateJavaScriptExpression(source, extensionPath);
-            if (!isExtensionCategory(extension)) throw new Error("Invalid extension metadata");
-            if (board?.isArduinoPlatform && !extension.supportArduinoPlatform) continue;
-            extenstionTree.push(extension);
-            categoryIconList.push(fs.read(`/extension/${extensionId}/${extension.icon}`) || `${rootPath}/favicon.png`);
-        } catch (error) {
-            console.warn(`Could not load extension ${extensionId} (${extensionPath})`, error);
-        }
-    }
-    if (isElectron) {
-        const extensionDir = sharedObj.extensionDir;
-        for (const extensionId of nodeFS.ls(extensionDir)) {
-            if (installedExtensionIds.has(extensionId)) continue;
-            const extensionPath = path.join(extensionDir, extensionId, "extension.js");
-            try {
-                const extensionSource = (await readFileAsync(extensionPath)).toString();
-                const extension = await evaluateJavaScriptExpression(extensionSource, extensionPath);
-                if (!isExtensionCategory(extension)) throw new Error("Invalid extension metadata");
-                if (board?.isArduinoPlatform && !extension.supportArduinoPlatform) continue;
-                let icon = `${rootPath}/favicon.png`;
-                if (extension.icon) {
-                    try {
-                        icon = await readFileAsDataURL(path.join(extensionDir, extensionId, extension.icon));
-                    } catch (error) {
-                        console.warn(`Could not load icon for extension ${extensionId}`, error);
-                    }
-                }
-                extenstionTree.push(extension);
-                categoryIconList.push(icon);
-            } catch (error) {
-                console.warn(`Could not load extension ${extensionId} (${extensionPath})`, error);
-            }
-        }
+    for (const { extension, icon } of await getInstalledExtensionRecords()) {
+        if (!isExtensionCategory(extension)) continue;
+        if (board?.isArduinoPlatform && !extension.supportArduinoPlatform) continue;
+        extenstionTree.push(extension);
+        categoryIconList.push(icon);
     }
 
     for (let category of extenstionTree) {
         toolboxTextXML += `<category name="${escapeToolboxAttribute(category.name)}" colour="${escapeToolboxAttribute(category.color)}"${typeof category.blocks === "string" ? ` custom="${escapeToolboxAttribute(category.blocks)}"` : ''}>`;
         const appendExtensionXML = xml => {
             try {
+                if (xml && typeof xml === "object") xml = Blockly.Xml.domToText(xml);
                 if (typeof xml !== "string") throw new Error("Expected toolbox XML text");
                 // Validate each entry before joining: malformed XML must not
                 // prevent the rest of this extension or other categories loading.
@@ -173,7 +137,7 @@ let updateBlockCategory = async () => {
                 }
             } else if (typeof category.blocks === "function") {
                 const xmlList = category.blocks(blocklyWorkspace);
-                for (let xml of xmlList) appendExtensionXML(Blockly.Xml.domToText(xml));
+                for (let xml of xmlList) appendExtensionXML(xml);
             }
         } catch (error) {
             console.warn(`Could not build toolbox category for extension ${category.name}`, error);
@@ -468,15 +432,15 @@ const selectRenderer = renderer => {
 
 if (isElectron) {
     nodeFS.walk = (dir) => {
-        return new Promise((resolve, reject) => {
+        return new Promise(resolve => {
             let files = [ ];
-            let traversalError = null;
             dive(dir, (err, file) => {
-                if (err) traversalError = traversalError || err;
+                if (err) console.warn(`Could not read extension script directory ${dir}`, err);
                 else files.push(file);
             }, () => {
-                if (traversalError) reject(traversalError);
-                else resolve(files.sort());
+                // A missing or inaccessible subdirectory must not discard the
+                // healthy scripts already found in the same extension.
+                resolve(files.sort());
             });
         });
     };
@@ -530,68 +494,42 @@ const updateWorkspace = () => {
     }
 }
 
-/* Auto Save to localStorage */
-const updataWorkspaceAndCategoryFromvFS = async (disable_load_fs) => {
-    if (!vFSTree) {
-        vFSTree = { };
-    }
-
-    for (const extensionId of fs.ls("/extension")) {
-        let extensionLocalPath = `/extension/${extensionId}`;
-        let blocksFile = sortExtensionScripts(fs.walk(`${extensionLocalPath}/blocks`));
-        for (const file of blocksFile) {
-            if (/\.js$/i.test(file)) {
-                let jsContent = fs.read(`${extensionLocalPath}/blocks/${file}`);
-                try {
-                    await runJavaScript(jsContent, `${extensionLocalPath}/blocks/${file}`);
-                } catch (e) {
-                    NotifyE("Script run error: " + e.toString());
-                    console.error(e);
-                }
-            } else {
-                console.warn("Why file " + file + " in blocks ? support .js only so skip it");
-            }
+let previousExtensionRegistrations = [];
+const restorePreviousExtensionRegistrations = () => restoreBlockRegistrations(previousExtensionRegistrations);
+// Internal loader: callers hold the board/extension group queue. Keep each
+// script's ownership atomic so uninstall/reload cannot leave stale handlers.
+const loadInstalledExtensionRegistrations = async () => {
+    restorePreviousExtensionRegistrations();
+    for (const source of await getInstalledExtensionSources()) {
+        let files;
+        try {
+            files = sortExtensionScripts(source.isProject ? fs.walk(`${source.basePath}/blocks`)
+                : await nodeFS.walk(path.join(source.basePath, "blocks")));
+        } catch (error) {
+            console.warn(`Could not load block scripts for extension ${source.id}`, error);
+            continue;
         }
-    }
-
-    if (isElectron) {
-        // Load local extension
-        let extensionDir = sharedObj.extensionDir;
-        for (const extensionId of nodeFS.ls(extensionDir)) {
-            // Project-installed extensions override a disk copy with the same ID.
-            if (fs.ls("/extension").includes(extensionId)) continue;
-            const extensionLocalPath = path.join(extensionDir, extensionId);
-            let blocksFile;
+        for (const file of files) {
+            const scriptPath = source.isProject ? `${source.basePath}/blocks/${file}` : file;
             try {
-                blocksFile = sortExtensionScripts(await nodeFS.walk(path.join(extensionLocalPath, "blocks")));
+                const contents = source.isProject ? fs.read(scriptPath) : (await readFileAsync(scriptPath)).toString();
+                await runJavaScript(contents, scriptPath, registrationLoadHooks(previousExtensionRegistrations));
             } catch (error) {
-                console.warn(`Could not load block scripts for extension ${extensionId}`, error);
-                continue;
-            }
-            for (const file of blocksFile) {
-                if (/\.js$/i.test(file)) {
-                    try {
-                        const jsContent = (await readFileAsync(file)).toString();
-                        await runJavaScript(jsContent, file);
-                    } catch (e) {
-                        NotifyE("Script run error: " + e.toString());
-                        console.error(e);
-                    }
-                } else {
-                    console.warn("Why file " + file + " in blocks ? support .js only so skip it");
-                }
+                NotifyE("Script run error: " + error.toString());
+                console.error(error);
             }
         }
     }
+};
 
+/* Auto Save to localStorage */
+const updataWorkspaceAndCategoryFromvFS = disable_load_fs => queueBlockRegistrationLoad(async () => {
+    if (!vFSTree) vFSTree = {};
+    await loadInstalledExtensionRegistrations();
     await updateBlockCategory();
-    
-    if (disable_load_fs) {
-        return;
-    }
-
-    updateWorkspace();
-}
+    Blockly.Events.refreshBlockValidation(blocklyWorkspace);
+    if (!disable_load_fs) updateWorkspace();
+});
 
 let hotUpdate = async () => {
     if (!vFSTree) {
@@ -625,7 +563,7 @@ let hotUpdate = async () => {
 
     await loadBoard();
     if (useMode === "block") {
-        await updataWorkspaceAndCategoryFromvFS();
+        updateWorkspace();
     } else if (useMode === "code") {
         $("#mode-select-switch > li[data-value='2']").click();
         $(async () => {

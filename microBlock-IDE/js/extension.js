@@ -2,24 +2,22 @@ const extensionIndexURL = "https://microblock-ide.github.io/microBlock-extension
 let extensionIndex = null;
 
 let updateExtensionIndex = async () => {
-    let extensionIndexFromAPI = await fetch(extensionIndexURL, { 
-        redirect: "follow",
-        headers: { 
-            // "Accept": "application/vnd.github.v3.raw" 
-        },
-    });
-    if (!extensionIndexFromAPI.ok) {
+    try {
+        const response = await fetch(extensionIndexURL, { redirect: "follow" });
+        if (!response.ok) throw new Error(`Extension index returned ${response.status}`);
+        const index = await response.json();
+        if (!index || typeof index !== "object" || Array.isArray(index)) throw new Error("Invalid extension index");
+        extensionIndex = index;
+        return true;
+    } catch (error) {
+        console.warn("Could not load extension index", error);
         NotifyE("Load extension index fail");
         return false;
     }
-    extensionIndexFromAPI = await extensionIndexFromAPI.json();
-    extensionIndex = extensionIndexFromAPI;
-
-    return true;
 }
 
 let installExtension = async (extensionId) => {
-    if (typeof extensionIndex[extensionId] === "undefined") {
+    if (!extensionIndex || typeof extensionIndex[extensionId] === "undefined") {
         NotifyE("Not found " + extensionId + " in extension index");
         return false;
     }
@@ -32,26 +30,11 @@ let installExtension = async (extensionId) => {
         return false;
     }
 
-    let blocksFile = sortExtensionScripts(fs.walk(`${extensionLocalPath}/blocks`));
-    for (const file of blocksFile) {
-        if (/\.js$/i.test(file)) {
-            let jsContent = fs.read(`${extensionLocalPath}/blocks/${file}`);
-            try {
-                await runJavaScript(jsContent, `${extensionLocalPath}/blocks/${file}`);
-            } catch (e) {
-                NotifyE("Script run error: " + e.toString());
-                console.error(e);
-            }
-        } else {
-            console.warn("Why file " + file + " in blocks ? support .js only so skip it");
-        }
-    }
-
     if (extension?.supportArduinoPlatform && Array.isArray(extension?.depends)) {
         await arduino_check_and_install_library(extension?.depends);
     }
 
-    await updateBlockCategory();
+    await updataWorkspaceAndCategoryFromvFS(true);
 
     NotifyS(`Install ${extension.name} extension successful`);
     saveCodeToLocal();
@@ -60,15 +43,25 @@ let installExtension = async (extensionId) => {
 }
 
 let removeExtension = async (extensionId) => {
+    // An extension ID is one directory name, never an arbitrary removal path.
+    if (typeof extensionId !== "string" || !extensionId || extensionId === "."
+        || extensionId === ".." || /[\\/]/.test(extensionId)) {
+        NotifyE("Invalid extension ID");
+        return false;
+    }
     fs.remove(`/extension/${extensionId}`);
     if (isElectron) {
-        let path = `${rootPath}/../extension/${extensionId}`;
-        if (nodeFS.existsSync(path)) {
-            nodeFS.rmdirSync(path, { recursive: true });
+        const extensionRoot = path.resolve(sharedObj.extensionDir);
+        const extensionPath = path.resolve(extensionRoot, extensionId);
+        if (extensionPath === extensionRoot || path.dirname(extensionPath) !== extensionRoot) {
+            throw new Error("Extension removal must stay inside the extension directory");
+        }
+        if (nodeFS.existsSync(extensionPath)) {
+            nodeFS.rmdirSync(extensionPath, { recursive: true });
         }
     }
 
-    await updateBlockCategory();
+    await updataWorkspaceAndCategoryFromvFS(true);
 
     NotifyS(`Uninstall ${extensionId} successful`);
     saveCodeToLocal();
@@ -85,6 +78,15 @@ $("#open-extension-dialog").click(async () => {
 
     if (!extensionIndex) {
         if (!(await updateExtensionIndex())) {
+            // Installed extensions remain usable when offline or the index is down.
+            const installed = {};
+            for (const record of await getInstalledExtensionRecords()) {
+                installed[record.id] = { ...record.extension, icon: record.icon };
+            }
+            await showExtensionList(installed);
+            $(".extension-category-list > li").removeClass("active").filter(function() {
+                return $(this).text() === "Installed";
+            }).addClass("active");
             Notiflix.Block.Remove("#extension-dialog > section");
             return;
         }
@@ -105,16 +107,13 @@ $("#open-extension-creator").click(() => {
     $(".add-extension-box").fadeIn();
 });
 
-let showExtensionList = (extensionList) => {
+let showExtensionList = async (extensionList) => {
     $("#extension-dialog .extension-list").html('');
 
-    let extensionInstalledList = fs.ls("/extension");
-    if (isElectron) {
-        extensionInstalledList = extensionInstalledList.concat(nodeFS.ls(sharedObj.extensionDir));
-    }
+    const extensionInstalledIds = new Set((await getInstalledExtensionSources()).map(source => source.id));
     const board = boards.find(board => board.id === boardId);
     for (const [id, info] of Object.entries(extensionList)) {
-        if (Array.isArray(info?.chip) && (!info.chip.includes(board.chip))) { // Skip if chip not support
+        if (Array.isArray(info?.chip) && (!info.chip.includes(board?.chip))) { // Skip if chip not support
             continue;
         }
 
@@ -124,7 +123,7 @@ let showExtensionList = (extensionList) => {
 
         $("#extension-dialog .extension-list").append(`
         <li>
-            <div class="extension-box${extensionInstalledList.indexOf(id) >= 0 ? " installed" : ""}" data-extension-id="${id}">
+            <div class="extension-box${extensionInstalledIds.has(id) ? " installed" : ""}" data-extension-id="${id}">
                 <div class="header">
                     <div class="cover">
                         <img src="${info.icon}" alt="${info.name}">
@@ -153,19 +152,29 @@ let showExtensionList = (extensionList) => {
         let queryBox = `.extension-box[data-extension-id='${extensionId}']`;
         Notiflix.Block.Standard(queryBox, 'Installing...');
 
-        if (await installExtension(extensionId)) {
-            $(queryBox).addClass("installed");
+        try {
+            if (await installExtension(extensionId)) {
+                $(queryBox).addClass("installed");
+            }
+        } catch (error) {
+            console.error("Could not install extension", extensionId, error);
+            NotifyE("Install extension fail");
+        } finally {
+            Notiflix.Block.Remove(queryBox);
         }
-
-        Notiflix.Block.Remove(queryBox);
     });
 
     $(".extension-uninstall").click(async function() {
         let extensionId = $(this).parents(".extension-box").attr("data-extension-id");
         let queryBox = `.extension-box[data-extension-id='${extensionId}']`;
 
-        if (await removeExtension(extensionId)) {
-            $(queryBox).removeClass("installed");
+        try {
+            if (await removeExtension(extensionId)) {
+                $(queryBox).removeClass("installed");
+            }
+        } catch (error) {
+            console.error("Could not uninstall extension", extensionId, error);
+            NotifyE("Uninstall extension fail");
         }
     });
 }
@@ -175,7 +184,7 @@ $(".extension-category-list > li").click(async function() {
 
     let extensionList = { };
     if (categoryName != "Installed") {
-        for (const [id, info] of Object.entries(extensionIndex)) {
+        for (const [id, info] of Object.entries(extensionIndex || {})) {
             if (categoryName !== "All" && categoryName !== info.category) {
                 continue;
             }
@@ -183,27 +192,24 @@ $(".extension-category-list > li").click(async function() {
             extensionList[id].icon = `${info.github}/raw/master/${info.icon}`;
         }
     } else {
-        for (const extensionId of fs.ls("/extension")) {
-            const extensionPath = `/extension/${extensionId}/extension.js`;
-            const extension = await evaluateJavaScriptExpression(fs.read(extensionPath), extensionPath);
-            extensionList[extensionId] = extension;
-            extensionList[extensionId].icon = fs.read(`/extension/${extensionId}/${extension.icon}`);
+        for (const record of await getInstalledExtensionRecords()) {
+            extensionList[record.id] = { ...record.extension, icon: record.icon };
         }
     }
 
-    showExtensionList(extensionList);
+    await showExtensionList(extensionList);
 
     $(".extension-category-list > li").removeClass("active");
     $(this).addClass("active");
 });
 
-$("#extension-keyword").keyup(function() { 
+$("#extension-keyword").keyup(async function() {
     let keyword = $(this).val().toLowerCase();
 
     $(".extension-category-list > li").removeClass("active");
 
     let extensionList = { };
-    for (const [id, info] of Object.entries(extensionIndex)) {
+    for (const [id, info] of Object.entries(extensionIndex || {})) {
         if (info.name.toLowerCase().indexOf(keyword) < 0) {
             continue;
         }
@@ -211,7 +217,7 @@ $("#extension-keyword").keyup(function() {
         extensionList[id].icon = `${info.github}/raw/master/${info.icon}`;
     }
 
-    showExtensionList(extensionList);
+    await showExtensionList(extensionList);
 });
 
 $("#form-add-extension").submit(async function(e) {

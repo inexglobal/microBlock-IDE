@@ -6,18 +6,23 @@ Blockly.hasBlockGenerator = function(generator, type) {
 };
 
 // One incompatible extension entry must not abort the entire category. Keep
-// Blockly's own entry conversion, block construction, and gap handling; only
-// isolate failures and dispose the blocks that failed construction added.
+// Blockly's own block construction and gap handling, while isolating entry
+// conversion/render failures and disposing the blocks those failures added.
 (() => {
     const prototype = Blockly.Flyout?.prototype;
     if (!prototype || typeof prototype.getWorkspace !== "function"
         || typeof prototype.createFlyoutInfo !== "function"
         || typeof prototype.addSeparatorGap !== "function"
+        || typeof prototype.getDynamicCategoryContents !== "function"
+        || typeof Blockly.utils?.toolbox?.convertFlyoutDefToJsonArray !== "function"
+        || typeof Blockly.renderManagement?.triggerQueuedRenders !== "function"
         || typeof prototype.show !== "function") return;
 
     const originalCreateFlyoutInfo = prototype.createFlyoutInfo;
+    const originalGetDynamicCategoryContents = prototype.getDynamicCategoryContents;
     const originalShow = prototype.show;
     const reportedItems = new Set();
+    const activeCustomCategories = new WeakMap();
     const itemName = entry => {
         if (entry?.type) return String(entry.type);
         if (entry?.blockxml) {
@@ -45,8 +50,113 @@ Blockly.hasBlockGenerator = function(generator, type) {
             }
         }
     };
+    const parseToolboxXML = text => {
+        const parsed = new DOMParser().parseFromString(text, "text/xml");
+        if (parsed.getElementsByTagName("parsererror").length) {
+            throw new Error("Malformed toolbox XML");
+        }
+        return parsed.documentElement;
+    };
+    // Blockly determines the format of a whole array from its first item. A
+    // null first item, mixed XML/JSON, or a damaged XML node can consequently
+    // hide every healthy item returned by an extension's category callback.
+    // Convert independently before invoking the upstream array conversion.
+    const normalizeEntries = entries => {
+        if (entries == null) return [];
+        if (typeof entries === "string") {
+            try {
+                entries = parseToolboxXML(`<xml xmlns="https://developers.google.com/blockly/xml">${entries}</xml>`);
+            } catch (error) {
+                reportFailure({kind: "XML"}, error);
+                return [];
+            }
+        }
+        if (entries.contents) entries = entries.contents;
+        if (entries.nodeType) {
+            if (entries.nodeType === 9) entries = entries.documentElement;
+            entries = entries.tagName?.toUpperCase() === "XML"
+                ? Array.from(entries.childNodes) : [entries];
+        }
+        if (!Array.isArray(entries)) {
+            if (typeof entries.length === "number") entries = Array.from(entries);
+            else entries = [entries];
+        }
+        const normalized = [];
+        for (let entry of entries) {
+            try {
+                if (typeof entry === "string") {
+                    normalized.push(...normalizeEntries(entry));
+                    continue;
+                }
+                if (!entry || typeof entry !== "object") throw new Error("Invalid toolbox item");
+                if (entry.nodeType) {
+                    // Whitespace and comments are not toolbox entries.
+                    if (entry.nodeType !== 1) continue;
+                    if (entry.tagName.toUpperCase() === "XML") {
+                        normalized.push(...normalizeEntries(entry));
+                        continue;
+                    }
+                    normalized.push(...normalizeEntries(
+                        Blockly.utils.toolbox.convertFlyoutDefToJsonArray([entry])));
+                    continue;
+                }
+                if (typeof entry.kind !== "string") throw new Error("Toolbox item has no kind");
+                if (["LABEL", "BUTTON"].includes(entry.kind.toUpperCase())
+                    && typeof entry.text !== "string") {
+                    throw new Error("Toolbox labels and buttons need text");
+                }
+                if (typeof entry.blockxml === "string") {
+                    const blockxml = parseToolboxXML(entry.blockxml);
+                    if (blockxml.tagName.toUpperCase() !== "BLOCK") {
+                        throw new Error("Toolbox block XML must have a block root");
+                    }
+                    entry = {...entry, blockxml};
+                }
+                normalized.push(entry);
+            } catch (error) {
+                reportFailure(entry, error);
+            }
+        }
+        return normalized;
+    };
     const registeredBlocks = workspace => workspace.blockDB instanceof Map
         ? Array.from(workspace.blockDB.values()) : workspace.getAllBlocks(false);
+    const forceDisposeFailedBlock = (workspace, block) => {
+        // An extension's destroy/field-dispose hook can throw after Blockly
+        // unregisters its block but before marking it disposed. The render
+        // queue would then retry that same broken object for every sibling.
+        // This fallback is limited to newly created, failed flyout blocks.
+        const attempt = callback => {
+            try { callback(); } catch (error) {
+                console.warn("Unable to clean failed toolbox block component", block.type, error);
+            }
+        };
+        block.disposed = true;
+        block.rendered = false;
+        attempt(() => workspace.removeBlockById(block.id));
+        attempt(() => {
+            if (workspace.getTopBlocks(false).includes(block)) workspace.removeTopBlock(block);
+        });
+        attempt(() => {
+            if (workspace.getBlocksByType(block.type, false).includes(block)) workspace.removeTypedBlock(block);
+        });
+        attempt(() => {
+            if (block.onchangeWrapper_) workspace.removeChangeListener(block.onchangeWrapper_);
+        });
+        attempt(() => {
+            for (const timeout of block.warningTextDb?.values() || []) clearTimeout(timeout);
+            block.warningTextDb?.clear();
+        });
+        for (const icon of block.icons || []) attempt(() => icon.dispose());
+        for (const input of block.inputList || []) {
+            for (const field of input.fieldRow || []) attempt(() => field.dispose());
+            if (input.connection && !input.connection.disposed) attempt(() => input.connection.dispose());
+        }
+        for (const connection of [block.outputConnection, block.previousConnection, block.nextConnection]) {
+            if (connection && !connection.disposed) attempt(() => connection.dispose());
+        }
+        attempt(() => block.getSvgRoot?.()?.remove());
+    };
     const cleanFailedBlocks = (workspace, previousIds) => {
         for (const block of registeredBlocks(workspace)) {
             if (previousIds.has(block.id) || block.isDisposed?.()) continue;
@@ -60,7 +170,19 @@ Blockly.hasBlockGenerator = function(generator, type) {
                 block.dispose(false, false);
             } catch (error) {
                 console.warn("Unable to dispose failed toolbox block", block.type, error);
+                forceDisposeFailedBlock(workspace, block);
             }
+        }
+    };
+
+    prototype.getDynamicCategoryContents = function(categoryName) {
+        // Keep the original callback invocation (once per request), while
+        // isolating conversion of its result before recursive flyout creation.
+        try {
+            return normalizeEntries(originalGetDynamicCategoryContents.call(this, categoryName));
+        } catch (error) {
+            reportFailure({custom: categoryName}, error);
+            return [];
         }
     };
 
@@ -71,9 +193,13 @@ Blockly.hasBlockGenerator = function(generator, type) {
         const disabledBlocks = [];
         const defaultGap = this.horizontalLayout ? this.GAP_X : this.GAP_Y;
         this.permanentlyDisabled.length = 0;
+        if (!activeCustomCategories.has(this)) activeCustomCategories.set(this, new Set());
+        const activeCategories = activeCustomCategories.get(this);
 
         for (const entry of entries) {
             const previousIds = new Set(registeredBlocks(workspace).map(block => block.id));
+            let activeCategory;
+            let enteredCategory = false;
             try {
                 // Separators modify the preceding entry's gap, so they must
                 // see accumulated gaps instead of a one-entry temporary array.
@@ -82,13 +208,34 @@ Blockly.hasBlockGenerator = function(generator, type) {
                     this.addSeparatorGap(entry, gaps, defaultGap);
                     continue;
                 }
+                if (entry && "custom" in entry) {
+                    if (activeCategories.has(entry.custom)) {
+                        throw new Error(`Recursive toolbox category: ${entry.custom}`);
+                    }
+                    activeCategory = entry.custom;
+                    activeCategories.add(activeCategory);
+                    enteredCategory = true;
+                }
                 const result = originalCreateFlyoutInfo.call(this, [entry]);
+                // Construction queues rendering rather than executing it.
+                // Flush while this entry's IDs are still isolated, so a broken
+                // custom field/renderer cannot abort layout of its siblings.
+                Blockly.renderManagement.triggerQueuedRenders();
+                for (const item of result.contents) {
+                    if (item.type !== "block") continue;
+                    const size = item.block.getHeightWidth();
+                    if (!Number.isFinite(size.width) || !Number.isFinite(size.height)) {
+                        throw new Error("Invalid toolbox block dimensions");
+                    }
+                }
                 contents.push(...result.contents);
                 gaps.push(...result.gaps);
                 disabledBlocks.push(...this.permanentlyDisabled);
             } catch (error) {
                 cleanFailedBlocks(workspace, previousIds);
                 reportFailure(entry, error);
+            } finally {
+                if (enteredCategory) activeCategories.delete(activeCategory);
             }
         }
         // The upstream method resets this list each call, including nested
@@ -100,6 +247,7 @@ Blockly.hasBlockGenerator = function(generator, type) {
 
     prototype.show = function(...args) {
         try {
+            if (typeof args[0] !== "string") args[0] = normalizeEntries(args[0]);
             return originalShow.apply(this, args);
         } finally {
             const workspace = this.getWorkspace();

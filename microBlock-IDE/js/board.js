@@ -9,6 +9,12 @@ let boardIdSelect = null;
 // Remove only registrations still owned by the previous board. Extensions may
 // replace or decorate them after loading, so preserve those later changes.
 let previousBoardRegistrations = [];
+let blockRegistrationLoadQueue = Promise.resolve();
+const queueBlockRegistrationLoad = task => {
+    const execution = blockRegistrationLoadQueue.then(task);
+    blockRegistrationLoadQueue = execution.catch(() => {});
+    return execution;
+};
 const snapshotBoardRegistration = (registry, key) => {
     const hasValue = Object.prototype.hasOwnProperty.call(registry, key);
     const value = registry[key];
@@ -29,8 +35,8 @@ const sameBoardRegistration = (left, right) => {
             && first.configurable === second.configurable;
     });
 };
-const restorePreviousBoardRegistrations = () => {
-    for (const { registry, key, before, loaded } of previousBoardRegistrations) {
+const restoreBlockRegistrations = records => {
+    for (const { registry, key, before, loaded } of records) {
         if (!sameBoardRegistration(snapshotBoardRegistration(registry, key), loaded)) continue;
         if (before.hasValue) {
             if (before.value === loaded.value && before.properties) {
@@ -44,8 +50,47 @@ const restorePreviousBoardRegistrations = () => {
             delete registry[key];
         }
     }
-    previousBoardRegistrations = [];
+    records.length = 0;
 };
+const restorePreviousBoardRegistrations = () => restoreBlockRegistrations(previousBoardRegistrations);
+
+// Snapshot inside runJavaScript's execution queue, not before its asynchronous
+// script load. Otherwise another script's changes can be assigned to this owner.
+const registrationLoadHooks = records => ({
+    beforeExecute: () => {
+        const registries = [Blockly.Blocks];
+        for (const generator of availableBlockGenerators()) {
+            registries.push(generator.forBlock, generator);
+        }
+        return registries.map(registry => {
+            const generatorState = availableBlockGenerators().includes(registry)
+                ? legacyBlockGeneratorStateFor(registry) : null;
+            const include = key => !generatorState || (!generatorState.reserved.has(key)
+                && typeof registry[key] === "function");
+            return { registry, include, before: new Map(Reflect.ownKeys(registry).filter(include)
+                .map(key => [key, snapshotBoardRegistration(registry, key)])) };
+        });
+    },
+    afterExecute: (error, snapshots) => {
+        if (!snapshots) return;
+        for (const { registry, include, before } of snapshots) {
+            for (const key of new Set([...before.keys(), ...Reflect.ownKeys(registry).filter(include)])) {
+                const prior = before.get(key) || { hasValue: false, value: undefined, properties: null };
+                const loaded = snapshotBoardRegistration(registry, key);
+                if (sameBoardRegistration(prior, loaded)) continue;
+                const existing = records.find(record => record.registry === registry && record.key === key);
+                if (existing) {
+                    // Preserve a change made by another owner between scripts.
+                    if (!sameBoardRegistration(existing.loaded, prior)) existing.before = prior;
+                    existing.loaded = loaded;
+                    if (sameBoardRegistration(existing.before, loaded)) records.splice(records.indexOf(existing), 1);
+                } else {
+                    records.push({ registry, key, before: prior, loaded });
+                }
+            }
+        }
+    }
+});
 
 $("#new-project").click(async () => {
     if (!(await NotifyConfirm("All blocks will lost. Are you sure of new project ?"))) {
@@ -134,15 +179,21 @@ let arduinoConsoleTerm = {
     }
 };
 
-let loadBoard = async () => {
-    if (!boardId || !levelName) {
-        return;
-    }
-    const board = boards.find(board => board.id === boardId);
+let boardLoadId = 0;
+let loadBoard = () => {
+    const requestedId = ++boardLoadId;
+    const requestedBoardId = boardId;
+    const requestedLevelName = levelName;
+    return queueBlockRegistrationLoad(() => loadRequestedBoard(requestedId, requestedBoardId, requestedLevelName));
+};
+const loadRequestedBoard = async (requestedId, requestedBoardId, requestedLevelName) => {
+    if (!requestedBoardId || !requestedLevelName || requestedId !== boardLoadId) return;
+    const board = boards.find(board => board.id === requestedBoardId);
+    if (!board) throw new Error(`Unknown board: ${requestedBoardId}`);
+    // Restore extension overrides first, exposing the old board's registrations
+    // so they can be removed before the new board is loaded.
+    restorePreviousExtensionRegistrations();
     restorePreviousBoardRegistrations();
-    const registries = [Blockly.Blocks, Blockly.Python.forBlock, Blockly.JavaScript.forBlock];
-    const beforeRegistrations = registries.map(registry => new Map(Reflect.ownKeys(registry)
-        .map(key => [key, snapshotBoardRegistration(registry, key)])));
     let scripts = [ ];
     scripts = scripts.concat(board.script);
     scripts = scripts.concat(board.blocks);
@@ -150,6 +201,7 @@ let loadBoard = async () => {
         scripts = scripts.concat(board.simulator.script);
     }
     for (let fPath of scripts) {
+        if (requestedId !== boardLoadId) return;
         let script;
         try {
             script = await fetch(`${rootPath}/boards/${board.id}/${fPath}`);
@@ -159,7 +211,8 @@ let loadBoard = async () => {
         }
         if (script.status === 200) {
             try {
-                await runJavaScript(await script.text(), `${rootPath}/boards/${board.id}/${fPath}`);
+                await runJavaScript(await script.text(), `${rootPath}/boards/${board.id}/${fPath}`,
+                    registrationLoadHooks(previousBoardRegistrations));
             } catch (e) {
                 console.warn(e);
             }
@@ -168,16 +221,9 @@ let loadBoard = async () => {
         }
     }
 
-    registries.forEach((registry, index) => {
-        const before = beforeRegistrations[index];
-        for (const key of new Set([...before.keys(), ...Reflect.ownKeys(registry)])) {
-            const prior = before.get(key) || { hasValue: false, value: undefined, properties: null };
-            const loaded = snapshotBoardRegistration(registry, key);
-            if (!sameBoardRegistration(prior, loaded)) {
-                previousBoardRegistrations.push({ registry, key, before: prior, loaded });
-            }
-        }
-    });
+    if (requestedId !== boardLoadId) return;
+    await loadInstalledExtensionRegistrations();
+    if (requestedId !== boardLoadId) return;
 
     for (let fPath of board.css) {
         let link = document.createElement('link');
@@ -187,11 +233,12 @@ let loadBoard = async () => {
     }
 
     await updateBlockCategory();
+    if (requestedId !== boardLoadId) return;
 
     autoCompletionDictionary = board.autoCompletion;
 
     $("#board-name").text(board.name);
-    $("#level-name").text(levelName);
+    $("#level-name").text(requestedLevelName);
 
     if (typeof board.simulator !== "undefined") {
         let last_deivce_mode = +localStorage.getItem("last_deivce_mode");
@@ -203,6 +250,7 @@ let loadBoard = async () => {
     if (typeof board?.onLoad === "function") {
         await board.onLoad(blocklyWorkspace, board);
     }
+    if (requestedId !== boardLoadId) return;
 
     Blockly.Events.refreshBlockValidation(blocklyWorkspace);
 
@@ -239,7 +287,7 @@ let loadBoard = async () => {
             $("#arduino-console-dialog .title").text("Load board FAIL");
         });
     }
-}
+};
 
 $("#create-project-btn").click(async () => {
     {
@@ -276,7 +324,7 @@ $("#create-project-btn").click(async () => {
     // vFSTree = { };
     if (useMode === "block") {
         // fs.write("/main.xml", "");
-        await updataWorkspaceAndCategoryFromvFS(true);
+        Blockly.Events.refreshBlockValidation(blocklyWorkspace);
         blocklyWorkspace.setScale(1);
         blocklyWorkspace.scrollCenter();
     } else if (useMode === "code") {

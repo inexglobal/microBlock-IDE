@@ -5,6 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "test:extensions": "electron tests/extension-loading.cjs",
     "install": "electron-rebuild -f -w \"wifi-control\"",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
@@ -42,7 +43,8 @@
     "productName": "microBlock IDE",
     "asar": false,
     "files": [
-      "!Arduino/*"
+      "!Arduino/*",
+      "!tests/**"
     ],
     "win": {
       "target": "msi",
