@@ -32,9 +32,9 @@ let installExtension = async (extensionId) => {
         return false;
     }
 
-    let blocksFile = fs.walk(`${extensionLocalPath}/blocks`);
+    let blocksFile = sortExtensionScripts(fs.walk(`${extensionLocalPath}/blocks`));
     for (const file of blocksFile) {
-        if (file.endsWith(".js")) {
+        if (/\.js$/i.test(file)) {
             let jsContent = fs.read(`${extensionLocalPath}/blocks/${file}`);
             try {
                 await runJavaScript(jsContent, `${extensionLocalPath}/blocks/${file}`);
@@ -51,7 +51,7 @@ let installExtension = async (extensionId) => {
         await arduino_check_and_install_library(extension?.depends);
     }
 
-    updateBlockCategory();
+    await updateBlockCategory();
 
     NotifyS(`Install ${extension.name} extension successful`);
     saveCodeToLocal();
@@ -68,7 +68,7 @@ let removeExtension = async (extensionId) => {
         }
     }
 
-    updateBlockCategory();
+    await updateBlockCategory();
 
     NotifyS(`Uninstall ${extensionId} successful`);
     saveCodeToLocal();
@@ -164,7 +164,7 @@ let showExtensionList = (extensionList) => {
         let extensionId = $(this).parents(".extension-box").attr("data-extension-id");
         let queryBox = `.extension-box[data-extension-id='${extensionId}']`;
 
-        if (removeExtension(extensionId)) {
+        if (await removeExtension(extensionId)) {
             $(queryBox).removeClass("installed");
         }
     });

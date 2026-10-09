@@ -197,7 +197,7 @@ $("#import-extension").on("click", async () => {
             }
         }
 
-        updataWorkspaceAndCategoryFromvFS(true); // disable load fs
+        await updataWorkspaceAndCategoryFromvFS(true); // disable load fs
         $("#file-explorer-open-btn").click();
     }, false);
     input.click();

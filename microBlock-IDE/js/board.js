@@ -186,7 +186,7 @@ let loadBoard = async () => {
         document.head.appendChild(link);
     }
 
-    updateBlockCategory();
+    await updateBlockCategory();
 
     autoCompletionDictionary = board.autoCompletion;
 
@@ -276,7 +276,7 @@ $("#create-project-btn").click(async () => {
     // vFSTree = { };
     if (useMode === "block") {
         // fs.write("/main.xml", "");
-        updataWorkspaceAndCategoryFromvFS(true);
+        await updataWorkspaceAndCategoryFromvFS(true);
         blocklyWorkspace.setScale(1);
         blocklyWorkspace.scrollCenter();
     } else if (useMode === "code") {

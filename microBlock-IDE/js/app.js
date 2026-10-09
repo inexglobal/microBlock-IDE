@@ -21,8 +21,28 @@ const rememberRecentProject = filePath => {
 
 var blocklyWorkspace;
 
+let blockCategoryUpdateId = 0;
+const escapeToolboxAttribute = value => String(value == null ? "" : value)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+
+// Native directory traversal order differs across platforms. Load definitions
+// before generators that decorate their XML, with a stable order within each.
+const sortExtensionScripts = files => files.filter(file => /\.js$/i.test(file)).sort((left, right) => {
+    const key = file => String(file).replace(/\\/g, "/");
+    const generatorRank = file => /(^|\/)generators?([/_.-]|$)/i.test(key(file)) ? 1 : 0;
+    const rank = generatorRank(left) - generatorRank(right);
+    if (rank) return rank;
+    return key(left) < key(right) ? -1 : key(left) > key(right) ? 1 : 0;
+});
+
+const isExtensionCategory = extension => extension && typeof extension.name === "string"
+    && (Array.isArray(extension.blocks) || typeof extension.blocks === "string"
+        || typeof extension.blocks === "function");
+
 let updateBlockCategory = async () => {
     if (isEmbed) return;
+    const updateId = ++blockCategoryUpdateId;
 
     var categoryIconList = [];
     let toolboxTextXML = `<xml xmlns="https://developers.google.com/blockly/xml">`;
@@ -36,7 +56,7 @@ let updateBlockCategory = async () => {
     };
     // blockTree
     for (let category of toolboxTree) {
-        toolboxTextXML += `<category name="${category.name}" colour="${category.color}"${typeof category.blocks === "string" ? ` custom="${category.blocks}"` : ''}>`;
+        toolboxTextXML += `<category name="${escapeToolboxAttribute(category.name)}" colour="${escapeToolboxAttribute(category.color)}"${typeof category.blocks === "string" ? ` custom="${escapeToolboxAttribute(category.blocks)}"` : ''}>`;
         if (typeof category.blocks === "object") {
             for (let block of category.blocks) {
                 if (typeof block === "object") {
@@ -72,51 +92,91 @@ let updateBlockCategory = async () => {
     }
 
     // Extenstion
-    extenstionTree = [];
+    const extenstionTree = [];
+    const installedExtensionIds = new Set();
     for (const extensionId of fs.ls("/extension")) {
+        // Use the same project-first source choice as the script loader, even
+        // when its metadata is damaged; never mix two versions of an extension.
+        installedExtensionIds.add(extensionId);
         const extensionPath = `/extension/${extensionId}/extension.js`;
-        const extension = await evaluateJavaScriptExpression(fs.read(extensionPath), extensionPath);
-        if (board?.isArduinoPlatform && (!extension?.supportArduinoPlatform)) { // Skip if select board arduino but extension not support arduino
-            continue;
+        try {
+            const source = fs.read(extensionPath);
+            if (typeof source !== "string") throw new Error("Missing extension.js");
+            const extension = await evaluateJavaScriptExpression(source, extensionPath);
+            if (!isExtensionCategory(extension)) throw new Error("Invalid extension metadata");
+            if (board?.isArduinoPlatform && !extension.supportArduinoPlatform) continue;
+            extenstionTree.push(extension);
+            categoryIconList.push(fs.read(`/extension/${extensionId}/${extension.icon}`) || `${rootPath}/favicon.png`);
+        } catch (error) {
+            console.warn(`Could not load extension ${extensionId} (${extensionPath})`, error);
         }
-        extenstionTree.push(extension);
-        categoryIconList.push(fs.read(`/extension/${extensionId}/${extension.icon}`));
     }
     if (isElectron) {
-        let extensionDir = sharedObj.extensionDir;
+        const extensionDir = sharedObj.extensionDir;
         for (const extensionId of nodeFS.ls(extensionDir)) {
-            const extensionPath = `${extensionDir}/${extensionId}/extension.js`;
-            const extensionSource = (await readFileAsync(extensionPath)).toString();
-            const extension = await evaluateJavaScriptExpression(extensionSource, extensionPath);
-            extenstionTree.push(extension);
-            const iconPath = path.join(extensionDir, extensionId, extension.icon);
-            categoryIconList.push(await readFileAsDataURL(iconPath));
+            if (installedExtensionIds.has(extensionId)) continue;
+            const extensionPath = path.join(extensionDir, extensionId, "extension.js");
+            try {
+                const extensionSource = (await readFileAsync(extensionPath)).toString();
+                const extension = await evaluateJavaScriptExpression(extensionSource, extensionPath);
+                if (!isExtensionCategory(extension)) throw new Error("Invalid extension metadata");
+                if (board?.isArduinoPlatform && !extension.supportArduinoPlatform) continue;
+                let icon = `${rootPath}/favicon.png`;
+                if (extension.icon) {
+                    try {
+                        icon = await readFileAsDataURL(path.join(extensionDir, extensionId, extension.icon));
+                    } catch (error) {
+                        console.warn(`Could not load icon for extension ${extensionId}`, error);
+                    }
+                }
+                extenstionTree.push(extension);
+                categoryIconList.push(icon);
+            } catch (error) {
+                console.warn(`Could not load extension ${extensionId} (${extensionPath})`, error);
+            }
         }
     }
 
     for (let category of extenstionTree) {
-        toolboxTextXML += `<category name="${category.name}" colour="${category.color}"${typeof category.blocks === "string" ? ` custom="${category.blocks}"` : ''}>`;
-        if (typeof category.blocks === "object") {
-            for (let block of category.blocks) {
-                if (typeof block === "object") {
-                    toolboxTextXML += block.xml;
-                } else {
-                    if (typeof Blockly.Blocks[block] !== "undefined") {
-                        if (typeof Blockly.Blocks[block].xml !== "undefined") {
-                            toolboxTextXML += Blockly.Blocks[block].xml;
-                        } else {
-                            toolboxTextXML += `<block type="${block}"></block>`;
-                        }
+        toolboxTextXML += `<category name="${escapeToolboxAttribute(category.name)}" colour="${escapeToolboxAttribute(category.color)}"${typeof category.blocks === "string" ? ` custom="${escapeToolboxAttribute(category.blocks)}"` : ''}>`;
+        const appendExtensionXML = xml => {
+            try {
+                if (typeof xml !== "string") throw new Error("Expected toolbox XML text");
+                // Validate each entry before joining: malformed XML must not
+                // prevent the rest of this extension or other categories loading.
+                // Blockly's textToDom falls back to HTML, which can silently
+                // swallow following blocks into an unclosed malformed entry.
+                const parsed = new DOMParser().parseFromString(
+                    `<xml xmlns="https://developers.google.com/blockly/xml">${xml}</xml>`, "text/xml");
+                if (parsed.getElementsByTagName("parsererror").length) throw new Error("Malformed toolbox XML");
+                toolboxTextXML += xml;
+            } catch (error) {
+                console.warn(`Invalid toolbox entry in extension ${category.name}`, error);
+            }
+        };
+        try {
+            if (Array.isArray(category.blocks)) {
+                for (let block of category.blocks) {
+                    if (block && typeof block === "object") {
+                        appendExtensionXML(block.xml);
                     } else {
-                        console.warn(block, "undefined, forget add blocks_xxx.js ?");
+                        if (typeof Blockly.Blocks[block] !== "undefined") {
+                            if (typeof Blockly.Blocks[block].xml !== "undefined") {
+                                appendExtensionXML(Blockly.Blocks[block].xml);
+                            } else {
+                                appendExtensionXML(`<block type="${escapeToolboxAttribute(block)}"></block>`);
+                            }
+                        } else {
+                            console.warn(block, "undefined, forget add blocks_xxx.js ?");
+                        }
                     }
                 }
+            } else if (typeof category.blocks === "function") {
+                const xmlList = category.blocks(blocklyWorkspace);
+                for (let xml of xmlList) appendExtensionXML(Blockly.Xml.domToText(xml));
             }
-        } else if (typeof category.blocks === "function") {
-            let xmlList = category.blocks(blocklyWorkspace);
-            for (let xml of xmlList) {
-                toolboxTextXML += Blockly.Xml.domToText(xml);
-            }
+        } catch (error) {
+            console.warn(`Could not build toolbox category for extension ${category.name}`, error);
         }
         toolboxTextXML += `</category>`;
     }
@@ -127,18 +187,23 @@ let updateBlockCategory = async () => {
     const generator = board?.isArduinoPlatform ? Blockly.JavaScript : Blockly.Python;
     for (const element of toolboxXML.querySelectorAll("block, shadow")) {
         const type = element.getAttribute("type");
-        if (!Blockly.Blocks[type] || typeof generator.forBlock[type] !== "function") {
+        if (!Blockly.Blocks[type] || !Blockly.hasBlockGenerator(generator, type)) {
             element.remove();
         }
     }
 
+    // A slow metadata/icon read must not replace a more recent install/board update.
+    if (updateId !== blockCategoryUpdateId) return;
     blocklyWorkspace.updateToolbox(toolboxXML);
     /* blocklyWorkspace.scrollbar.resize(); */
 
-    for (const [index, element] of Object.entries($("span.blocklyTreeIcon"))) {
-        if (typeof element === "object" && element.nodeType !== undefined) {
-            $(element).append(`<img src="${categoryIconList[index]}" alt="">`);
-        }
+    for (const [index, item] of blocklyWorkspace.getToolbox().getToolboxItems().entries()) {
+        const element = item.getDiv()?.querySelector("span.blocklyTreeIcon");
+        if (!element) continue;
+        const icon = document.createElement("img");
+        icon.src = categoryIconList[index] || `${rootPath}/favicon.png`;
+        icon.alt = "";
+        element.appendChild(icon);
     }
 };
 
@@ -405,15 +470,34 @@ if (isElectron) {
     nodeFS.walk = (dir) => {
         return new Promise((resolve, reject) => {
             let files = [ ];
+            let traversalError = null;
             dive(dir, (err, file) => {
-                files.push(file);
+                if (err) traversalError = traversalError || err;
+                else files.push(file);
             }, () => {
-                resolve(files);
+                if (traversalError) reject(traversalError);
+                else resolve(files.sort());
             });
         });
     };
 
-    nodeFS.ls = (dir) => nodeFS.readdirSync(dir).filter(f => nodeFS.statSync(path.join(dir, f)).isDirectory());
+    nodeFS.ls = (dir) => {
+        if (!nodeFS.existsSync(dir)) return [];
+        try {
+            return nodeFS.readdirSync(dir).filter(file => {
+                if (file.startsWith(".")) return false;
+                try {
+                    return nodeFS.statSync(path.join(dir, file)).isDirectory();
+                } catch (error) {
+                    console.warn(`Could not read extension directory ${file}`, error);
+                    return false;
+                }
+            }).sort();
+        } catch (error) {
+            console.warn(`Could not list extension directory ${dir}`, error);
+            return [];
+        }
+    };
 }
 
 file_name_select = "main.xml";
@@ -454,9 +538,9 @@ const updataWorkspaceAndCategoryFromvFS = async (disable_load_fs) => {
 
     for (const extensionId of fs.ls("/extension")) {
         let extensionLocalPath = `/extension/${extensionId}`;
-        let blocksFile = fs.walk(`${extensionLocalPath}/blocks`);
+        let blocksFile = sortExtensionScripts(fs.walk(`${extensionLocalPath}/blocks`));
         for (const file of blocksFile) {
-            if (file.endsWith(".js")) {
+            if (/\.js$/i.test(file)) {
                 let jsContent = fs.read(`${extensionLocalPath}/blocks/${file}`);
                 try {
                     await runJavaScript(jsContent, `${extensionLocalPath}/blocks/${file}`);
@@ -474,13 +558,20 @@ const updataWorkspaceAndCategoryFromvFS = async (disable_load_fs) => {
         // Load local extension
         let extensionDir = sharedObj.extensionDir;
         for (const extensionId of nodeFS.ls(extensionDir)) {
-            let extensionLocalPath = `${extensionDir}/${extensionId}`;
-            let blocksFile = await nodeFS.walk(`${extensionLocalPath}/blocks`);
+            // Project-installed extensions override a disk copy with the same ID.
+            if (fs.ls("/extension").includes(extensionId)) continue;
+            const extensionLocalPath = path.join(extensionDir, extensionId);
+            let blocksFile;
+            try {
+                blocksFile = sortExtensionScripts(await nodeFS.walk(path.join(extensionLocalPath, "blocks")));
+            } catch (error) {
+                console.warn(`Could not load block scripts for extension ${extensionId}`, error);
+                continue;
+            }
             for (const file of blocksFile) {
-                if (file.endsWith(".js")) {
-                    let jsContent = await readFileAsync(file);
-                    jsContent = jsContent.toString();
+                if (/\.js$/i.test(file)) {
                     try {
+                        const jsContent = (await readFileAsync(file)).toString();
                         await runJavaScript(jsContent, file);
                     } catch (e) {
                         NotifyE("Script run error: " + e.toString());
@@ -493,7 +584,7 @@ const updataWorkspaceAndCategoryFromvFS = async (disable_load_fs) => {
         }
     }
 
-    updateBlockCategory();
+    await updateBlockCategory();
     
     if (disable_load_fs) {
         return;
@@ -534,7 +625,7 @@ let hotUpdate = async () => {
 
     await loadBoard();
     if (useMode === "block") {
-        updataWorkspaceAndCategoryFromvFS();
+        await updataWorkspaceAndCategoryFromvFS();
     } else if (useMode === "code") {
         $("#mode-select-switch > li[data-value='2']").click();
         $(async () => {

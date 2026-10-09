@@ -92,7 +92,9 @@ $("#mode-select-switch > li").off("click").on("click", async function () {
                 }
             }
 
-            updataWorkspaceAndCategoryFromvFS();
+            // Load extension registrations without re-entering this mode
+            // switch through updateWorkspace while the current file is .py.
+            await updataWorkspaceAndCategoryFromvFS(true);
 
             if (editor.getValue().length > 0) {
                 codeFromMonacoToBlock();

@@ -1,3 +1,113 @@
+// Blockly 10 still accepts the generator[type] registration used by older
+// extensions. Toolbox filtering and validation must use the same precedence
+// as CodeGenerator.blockToCode, rather than checking only the new dictionary.
+Blockly.hasBlockGenerator = function(generator, type) {
+    return typeof (generator?.forBlock?.[type] || generator?.[type]) === "function";
+};
+
+// One incompatible extension entry must not abort the entire category. Keep
+// Blockly's own entry conversion, block construction, and gap handling; only
+// isolate failures and dispose the blocks that failed construction added.
+(() => {
+    const prototype = Blockly.Flyout?.prototype;
+    if (!prototype || typeof prototype.getWorkspace !== "function"
+        || typeof prototype.createFlyoutInfo !== "function"
+        || typeof prototype.addSeparatorGap !== "function"
+        || typeof prototype.show !== "function") return;
+
+    const originalCreateFlyoutInfo = prototype.createFlyoutInfo;
+    const originalShow = prototype.show;
+    const reportedItems = new Set();
+    const itemName = entry => {
+        if (entry?.type) return String(entry.type);
+        if (entry?.blockxml) {
+            if (typeof entry.blockxml.getAttribute === "function") {
+                return entry.blockxml.getAttribute("type") || "unknown block";
+            }
+            const match = String(entry.blockxml).match(/\btype\s*=\s*["']([^"']+)["']/);
+            if (match) return match[1];
+        }
+        return String(entry?.custom || entry?.text || entry?.kind || "unknown item");
+    };
+    const reportFailure = (entry, error) => {
+        const name = itemName(entry);
+        if (reportedItems.has(name)) return;
+        reportedItems.add(name);
+        console.error(`Unable to show toolbox item "${name}". Check its extension block definition.`, error);
+        if (typeof NotifyE === "function") {
+            const safeName = name.replace(/[&<>"']/g, character => ({
+                "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+            })[character]);
+            try {
+                NotifyE(`Unable to show block ${safeName}. Update its extension or check the console.`);
+            } catch (notificationError) {
+                console.warn("Unable to display toolbox error notification", notificationError);
+            }
+        }
+    };
+    const registeredBlocks = workspace => workspace.blockDB instanceof Map
+        ? Array.from(workspace.blockDB.values()) : workspace.getAllBlocks(false);
+    const cleanFailedBlocks = (workspace, previousIds) => {
+        for (const block of registeredBlocks(workspace)) {
+            if (previousIds.has(block.id) || block.isDisposed?.()) continue;
+            // An invalid type can throw before the constructor adds the block
+            // to the top/typed lists. Remove that otherwise unreachable ID.
+            if (!workspace.getTopBlocks(false).includes(block) && !block.getParent?.()) {
+                workspace.removeBlockById(block.id);
+                continue;
+            }
+            try {
+                block.dispose(false, false);
+            } catch (error) {
+                console.warn("Unable to dispose failed toolbox block", block.type, error);
+            }
+        }
+    };
+
+    prototype.createFlyoutInfo = function(entries) {
+        const workspace = this.getWorkspace();
+        const contents = [];
+        const gaps = [];
+        const disabledBlocks = [];
+        const defaultGap = this.horizontalLayout ? this.GAP_X : this.GAP_Y;
+        this.permanentlyDisabled.length = 0;
+
+        for (const entry of entries) {
+            const previousIds = new Set(registeredBlocks(workspace).map(block => block.id));
+            try {
+                // Separators modify the preceding entry's gap, so they must
+                // see accumulated gaps instead of a one-entry temporary array.
+                if (typeof entry?.kind === "string" && entry.kind.toUpperCase() === "SEP"
+                    && !("custom" in entry)) {
+                    this.addSeparatorGap(entry, gaps, defaultGap);
+                    continue;
+                }
+                const result = originalCreateFlyoutInfo.call(this, [entry]);
+                contents.push(...result.contents);
+                gaps.push(...result.gaps);
+                disabledBlocks.push(...this.permanentlyDisabled);
+            } catch (error) {
+                cleanFailedBlocks(workspace, previousIds);
+                reportFailure(entry, error);
+            }
+        }
+        // The upstream method resets this list each call, including nested
+        // custom categories. Retain all disabled blocks for capacity checks.
+        this.permanentlyDisabled.length = 0;
+        this.permanentlyDisabled.push(...disabledBlocks);
+        return { contents, gaps };
+    };
+
+    prototype.show = function(...args) {
+        try {
+            return originalShow.apply(this, args);
+        } finally {
+            const workspace = this.getWorkspace();
+            if (workspace?.resizesEnabled === false) workspace.setResizesEnabled(true);
+        }
+    };
+})();
+
 // The block-plus-minus plugin reuses Blockly's text_quotes extension to get
 // the quote image helpers needed by an empty text_join block. That extension
 // also tries to decorate a TEXT field, which text_join does not have, and
@@ -233,7 +343,7 @@
         const generator = arduino ? Blockly.JavaScript : Blockly.Python;
         for (const block of workspace.getAllBlocks(false)) {
             const unsupported = !internalBlocks.has(block.type)
-                && typeof generator.forBlock[block.type] !== "function";
+                && !Blockly.hasBlockGenerator(generator, block.type);
             block.setWarningText(unsupported
                 ? `This block is not supported for ${arduino ? "Arduino" : "MicroPython"} on the selected board.`
                 : null, "microblock_support");

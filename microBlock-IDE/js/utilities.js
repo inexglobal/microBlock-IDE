@@ -144,9 +144,83 @@ function* makeFileIterator(content) {
     return '';
 }
 
+// Older extensions register generators directly on Blockly.Python/JavaScript.
+// Normalize only their block handlers, not the generator's own native methods.
+const legacyBlockGeneratorStates = new WeakMap();
+const legacyBlockGeneratorStateFor = generator => {
+    if (!legacyBlockGeneratorStates.has(generator)) {
+        const reserved = new Set();
+        for (let owner = generator; owner; owner = Object.getPrototypeOf(owner)) {
+            for (const key of Object.getOwnPropertyNames(owner)) reserved.add(key);
+        }
+        legacyBlockGeneratorStates.set(generator, { reserved, pending: new Map() });
+    }
+    return legacyBlockGeneratorStates.get(generator);
+};
+const availableBlockGenerators = () => typeof Blockly === "undefined" ? []
+    : [Blockly.Python, Blockly.JavaScript].filter(generator => generator && generator.forBlock);
+// Capture the native baseline before any dynamic board/extension script runs.
+availableBlockGenerators().forEach(legacyBlockGeneratorStateFor);
+
+const legacyBlockGeneratorHandlers = (generator, state) => new Map(
+    Object.getOwnPropertyNames(generator)
+        .filter(key => !state.reserved.has(key) && typeof generator[key] === "function")
+        .map(key => [key, generator[key]])
+);
+const snapshotLegacyBlockGenerators = () => availableBlockGenerators().map(generator => {
+    const state = legacyBlockGeneratorStateFor(generator);
+    return {
+        generator,
+        state,
+        legacy: legacyBlockGeneratorHandlers(generator, state),
+        modern: new Map(Object.getOwnPropertyNames(generator.forBlock)
+            .map(key => [key, generator.forBlock[key]]))
+    };
+});
+const reconcileLegacyBlockGenerators = snapshots => {
+    for (const { generator, state, legacy, modern } of snapshots) {
+        const handlers = legacyBlockGeneratorHandlers(generator, state);
+        const currentModern = generator.forBlock;
+        const hasModern = type => Object.prototype.hasOwnProperty.call(currentModern, type);
+        const modernChanged = type => modern.has(type) !== hasModern(type)
+            || modern.get(type) !== currentModern[type];
+
+        for (const type of legacy.keys()) {
+            if (!handlers.has(type)) state.pending.delete(type);
+        }
+        for (const [type, handler] of handlers) {
+            if (legacy.get(type) === handler) continue;
+            if (modernChanged(type)) {
+                // A script using both APIs explicitly chose its modern handler.
+                state.pending.delete(type);
+            } else {
+                state.pending.set(type, {
+                    handler,
+                    modern: currentModern[type],
+                    hasModern: hasModern(type)
+                });
+            }
+        }
+        for (const [type, pending] of state.pending) {
+            if (handlers.get(type) !== pending.handler || modernChanged(type)
+                || pending.hasModern !== hasModern(type)
+                || pending.modern !== currentModern[type]) {
+                state.pending.delete(type);
+                continue;
+            }
+            // Generators may be loaded before their block definitions. Wait for
+            // a later script rather than losing that registration permanently.
+            if (!Object.prototype.hasOwnProperty.call(Blockly.Blocks, type)) continue;
+            currentModern[type] = pending.handler;
+            state.pending.delete(type);
+        }
+    }
+};
+
 let dynamicScriptId = 0;
 
 const runJavaScript = (source, sourceName="dynamic-script.js") => {
+    const generatorSnapshots = snapshotLegacyBlockGenerators();
     const errorKey = `__microBlockDynamicScriptError${dynamicScriptId++}`;
     const safeSourceName = String(sourceName).replace(/[\r\n]/g, "");
     const wrappedSource = `try {\n${source}\n} catch (error) { window[${JSON.stringify(errorKey)}] = error; }\n//# sourceURL=${safeSourceName}`;
@@ -163,6 +237,14 @@ const runJavaScript = (source, sourceName="dynamic-script.js") => {
         script.onload = () => {
             const error = window[errorKey];
             delete window[errorKey];
+            try {
+                // Keep valid handlers registered before a later runtime error.
+                reconcileLegacyBlockGenerators(generatorSnapshots);
+            } catch (compatibilityError) {
+                cleanup();
+                reject(error || compatibilityError);
+                return;
+            }
             cleanup();
             error ? reject(error) : resolve();
         };
