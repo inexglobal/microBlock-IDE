@@ -18,3 +18,8 @@ env/
 # Python cache
 __pycache__/
 *.pyc
+/dmg-source
+/microblock-dmg-kit
+microblock-dmg-no-swift.zip
+.DS_Store
+/microblock-dmg-no-swift
